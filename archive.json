@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-06-27T15:51:17.803294+00:00",
+  "timestamp": "2020-07-31T00:11:53.773801+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -16996,6 +16996,56 @@
       },
       "comments": [],
       "reviews": []
+    },
+    {
+      "number": 250,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDU5NDc3ODQ1",
+      "title": "Fix typo caused by rename from ECHO to ECH.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/250",
+      "state": "MERGED",
+      "author": "orrc",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Fixes a minor search/replace mistake in #236.",
+      "createdAt": "2020-07-30T18:25:11Z",
+      "updatedAt": "2020-07-31T00:11:29Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "ce728f09363ef83341d77ba6f7d9d9b2732bd053",
+      "headRepository": "orrc/draft-ietf-tls-esni",
+      "headRefName": "patch-1",
+      "headRefOid": "b5bc766a6e44e430779032cf753d661ed61310da",
+      "closedAt": "2020-07-31T00:11:28Z",
+      "mergedAt": "2020-07-31T00:11:28Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "d322c0f5b695b623f8d0630df6e821ab2a00bae5"
+      },
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Oops. :-)",
+          "createdAt": "2020-07-31T00:11:24Z",
+          "updatedAt": "2020-07-31T00:11:24Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDU4ODQyNjIy",
+          "commit": {
+            "abbreviatedOid": "b5bc766"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-07-31T00:11:18Z",
+          "updatedAt": "2020-07-31T00:11:18Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
