@@ -66,7 +66,7 @@ Table of Contents
      3.1.  Topologies  . . . . . . . . . . . . . . . . . . . . . . .   4
      3.2.  Encrypted ClientHello (ECH) . . . . . . . . . . . . . . .   5
    4.  Encrypted ClientHello Configuration . . . . . . . . . . . . .   6
-   5.  The "encrypted_client_hello" extension  . . . . . . . . . . .   7
+   5.  The "encrypted_client_hello" extension  . . . . . . . . . . .   8
    6.  The "ech_nonce" extension . . . . . . . . . . . . . . . . . .   9
      6.1.  Incorporating Outer Extensions  . . . . . . . . . . . . .   9
    7.  Client Behavior . . . . . . . . . . . . . . . . . . . . . . .  10
@@ -83,7 +83,7 @@ Table of Contents
      9.2.  Middleboxes . . . . . . . . . . . . . . . . . . . . . . .  19
    10. Security Considerations . . . . . . . . . . . . . . . . . . .  19
      10.1.  Security and Privacy Goals . . . . . . . . . . . . . . .  19
-     10.2.  Unauthenticated and Cleartext DNS  . . . . . . . . . . .  20
+     10.2.  Unauthenticated and Plaintext DNS  . . . . . . . . . . .  20
      10.3.  Client Tracking  . . . . . . . . . . . . . . . . . . . .  21
      10.4.  Optional Record Digests and Trial Decryption . . . . . .  21
      10.5.  Related Privacy Leaks  . . . . . . . . . . . . . . . . .  21
@@ -135,12 +135,12 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    Although TLS 1.3 [RFC8446] encrypts most of the handshake, including
    the server certificate, there are several ways in which an on-path
    attacker can learn private information about the connection.  The
-   cleartext Server Name Indication (SNI) extension in ClientHello
+   plaintext Server Name Indication (SNI) extension in ClientHello
    messages, which leaks the target domain for a given connection, is
    perhaps the most sensitive information unencrypted in TLS 1.3.
 
    The target domain may also be visible through other channels, such as
-   cleartext client DNS queries, visible server IP addresses (assuming
+   plaintext client DNS queries, visible server IP addresses (assuming
    the server does not use domain-based virtual hosting), or other
    indirect mechanisms such as traffic analysis.  DoH
    [I-D.ietf-doh-dns-over-https] and DPRIVE [RFC7858] [RFC8094] provide
@@ -149,7 +149,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    address.  In such environments, the SNI remains the primary explicit
    signal used to determine the server's identity.
 
-   The TLS WG has extensively studied the problem of protecting the SNI,
+   The TLS Working Group has studied the problem of protecting the SNI,
    but has been unable to develop a completely generic solution.
    [I-D.ietf-tls-sni-encryption] provides a description of the problem
    space and some of the proposed techniques.  One of the more difficult
@@ -170,20 +170,20 @@ Rescorla, et al.        Expires 11 February 2021                [Page 3]
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-   The design in this document takes a different approach: it assumes
-   that private origins will co-locate with or hide behind a provider
-   (CDN, application server, etc.) which can protect SNIs for all of the
-   domains it hosts.  As a result, SNI protection does not indicate that
-   the client is attempting to reach a private origin, but only that it
-   is going to a particular service provider, which the observer could
-   already tell from the visible IP address.
+   The protocol specified by this document takes a different approach.
+   It assumes that private origins will co-locate with or hide behind a
+   provider (reverse proxy, application server, etc.) that protects SNIs
+   for all of the domains it hosts.  As a result, SNI protection does
+   not indicate that the client is attempting to reach a private origin,
+   but only that it is going to a particular service provider, which the
+   observer could already tell from the visible IP address.
 
-   The design in this document introduces a new extension, called
-   Encrypted Client Hello (ECH), which allows clients to encrypt the
-   entirety of their ClientHello to a supporting server.  This protects
-   the SNI and other potentially sensitive fields, such as the ALPN
-   list.  This extension is only supported with (D)TLS 1.3 [RFC8446] and
-   newer versions of the protocol.
+   This document specifies a new TLS extension, called Encrypted Client
+   Hello (ECH), that allows clients to encrypt their ClientHello to a
+   supporting server.  This protects the SNI and other potentially
+   sensitive fields, such as the ALPN list [RFC7301].  This extension is
+   only supported with (D)TLS 1.3 [RFC8446] and newer versions of the
+   protocol.
 
 2.  Conventions and Definitions
 
@@ -196,8 +196,8 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 3.  Overview
 
-   This document is designed to operate in one of two primary topologies
-   shown below, which we call "Shared Mode" and "Split Mode"
+   This protocol is designed to operate in one of two topologies
+   illustrated below, which we call "Shared Mode" and "Split Mode".
 
 3.1.  Topologies
 
@@ -215,9 +215,9 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
                        Figure 1: Shared Mode Topology
 
    In Shared Mode, the provider is the origin server for all the domains
-   whose DNS records point to it and clients form a TLS connection
-   directly to that provider, which has access to the plaintext of the
-   connection.
+   whose DNS records point to it.  In this mode, the TLS connection is
+   terminated by the provider.
+
 
 
 
@@ -237,43 +237,43 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
                        Figure 2: Split Mode Topology
 
-   In Split Mode, the provider is _not_ the origin server for private
-   domains.  Rather the DNS records for private domains point to the
+   In Split Mode, the provider is not the origin server for private
+   domains.  Rather, the DNS records for private domains point to the
    provider, and the provider's server relays the connection back to the
-   backend server, which is the true origin server.  The provider does
-   not have access to the plaintext of the connection.
+   origin server, who terminates the TLS connection with the client.
+   Importantly, service provider does not have access to the plaintext
+   of the connection.
+
+   In the remainder of this document, we will refer to the ECH-service
+   provider as the "client-facing server" and to the TLS terminator as
+   the "backend server".  These are the same entity in Shared Mode, but
+   in Split Mode, the client-facing and backend servers are physically
+   separated.
 
 3.2.  Encrypted ClientHello (ECH)
 
-   ECH works by encrypting the entire ClientHello, including the SNI and
-   any additional extensions such as ALPN.  This requires that each
-   provider publish a public key and metadata which is used for
-   ClientHello encryption for all the domains for which it serves
-   directly or indirectly (via Split Mode).  This document defines the
-   format of the SNI encryption public key and metadata, referred to as
-   an ECH configuration, and delegates DNS publication details to
-   [HTTPS-RR], though other delivery mechanisms are possible.  In
-   particular, if some of the clients of a private server are
+   ECH allows the client to encrypt sensitive ClientHello extensions,
+   e.g., SNI, ALPN, etc., under the public key of the client-facing
+   server.  This requires the client-facing server to publish the public
+   key and metadata it uses for ECH for all the domains for which it
+   serves directly or indirectly (via Split Mode).  This document
+   defines the format of the ECH encryption public key and metadata,
+   referred to as an ECH configuration, and delegates DNS publication
+   details to [HTTPS-RR], though other delivery mechanisms are possible.
+   In particular, if some of the clients of a private server are
    applications rather than Web browsers, those applications might have
    the public key and metadata preconfigured.
 
-   When a client wants to form a TLS connection to any of the domains
-   served by an ECH-supporting provider, it constructs a ClientHello in
-   the regular fashion containing the true SNI value (ClientHelloInner)
-   and then encrypts it using the public key for the provider.  It then
-   constructs a new ClientHello (ClientHelloOuter) with an innocuous SNI
-   (and potentially innocuous versions of other extensions such as ALPN
-   [RFC7301]) and containing the encrypted ClientHelloInner as an
-   extension.  It sends ClientHelloOuter to the server.
+   When a client wants to establish a TLS session with the backend
+   server, it constructs its ClientHello as usual (we will refer to this
+   as the ClientHelloInner message) and then encrypts this message using
+   the ECH public key.  It then constructs a new ClientHello
+   (ClientHelloOuter) with innocuous values for sensitive extensions,
+   e.g., SNI, ALPN, etc., and with the encrypted ClientHelloInner in an
+   "encrypted_client_hello" extension, which this document defines
+   (Section 5).  Finally, it sends ClientHelloOuter to the server.
 
-   Upon receiving ClientHelloOuter, the server can then decrypt
-   ClientHelloInner and either terminate the connection (in Shared Mode)
-   or forward it to the backend server (in Split Mode).
 
-   Note that both ClientHelloInner and ClientHelloOuter are both valid,
-   complete ClientHello messages.  ClientHelloOuter carries an encrypted
-   representation of ClientHelloInner in a "encrypted_client_hello"
-   extension, defined in Section 5.
 
 
 
@@ -281,6 +281,11 @@ Rescorla, et al.        Expires 11 February 2021                [Page 5]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+   Upon receiving ClientHelloOuter, the client-facing server processes
+   the encrypted ClientHelloInner and either terminates the connection
+   (in Shared Mode) or forwards it to the backend server (in Split
+   Mode).
 
 4.  Encrypted ClientHello Configuration
 
@@ -325,11 +330,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    The ECHConfig structure contains the following fields:
 
    version  The version of the structure.  For this specification, that
-      value SHALL be 0xff07.  Clients MUST ignore any ECHConfig
-      structure with a version they do not understand.
-
-   contents  An opaque byte string whose contents depend on the version
-
 
 
 
@@ -338,6 +338,10 @@ Rescorla, et al.        Expires 11 February 2021                [Page 6]
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
+      value SHALL be 0xff07.  Clients MUST ignore any ECHConfig
+      structure with a version they do not understand.
+
+   contents  An opaque byte string whose contents depend on the version
       of the structure.  For this specification, the contents are an
       ECHConfigContents structure.
 
@@ -382,10 +386,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    mandatory extensions.  If an unsupported mandatory extension is
    present, clients MUST reject the ECHConfig value.
 
-5.  The "encrypted_client_hello" extension
-
-   The encrypted ClientHelloInner is carried in an
-   "encrypted_client_hello" extension, defined as follows:
 
 
 
@@ -393,6 +393,11 @@ Rescorla, et al.        Expires 11 February 2021                [Page 7]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+5.  The "encrypted_client_hello" extension
+
+   The encrypted ClientHelloInner is carried in an
+   "encrypted_client_hello" extension, defined as follows:
 
       enum {
           encrypted_client_hello(0xff02), (65535)
@@ -423,7 +428,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    encrypted_ch  The serialized and encrypted ClientHelloInner
       structure, AEAD-encrypted using HPKE with the selected KEM, KDF,
-      and AEAD algorithm and key generated as described below.  {:br}
+      and AEAD algorithm and key generated as described below. {:br}
 
    If the server accepts ECH, it does not send this extension.  If it
    rejects ECH, then it sends the following structure in
@@ -438,17 +443,16 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       client should use on subsequent connections to encrypt the
       ClientHelloInner structure.
 
-   This protocol also defines the "ech_required" alert, which is sent by
-   the client when it offered an "encrypted_client_hello" extension
-   which was not accepted by the server.
-
-
 
 
 Rescorla, et al.        Expires 11 February 2021                [Page 8]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+   This protocol also defines the "ech_required" alert, which is sent by
+   the client when it offered an "encrypted_client_hello" extension
+   which was not accepted by the server.
 
 6.  The "ech_nonce" extension
 
@@ -494,10 +498,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
           uint8 hash<32..255>;
       } OuterExtensions;
 
-   OuterExtensions MUST only be used in ClientHelloInner.  It consists
-   of one or more ExtensionType values, each of which reference an
-   extension in ClientHelloOuter, and a digest of the complete
-   ClientHelloInner.
 
 
 
@@ -505,6 +505,11 @@ Rescorla, et al.        Expires 11 February 2021                [Page 9]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+   OuterExtensions MUST only be used in ClientHelloInner.  It consists
+   of one or more ExtensionType values, each of which reference an
+   extension in ClientHelloOuter, and a digest of the complete
+   ClientHelloInner.
 
    When sending ClientHello, the client first computes ClientHelloInner,
    including any PSK binders, and then MAY substitute extensions which
@@ -546,11 +551,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    carrying the HpkePublicKey and KEM identifier corresponding to the
    server, clients compute an HPKE encryption context as follows:
 
-   pkR = HPKE.KEM.Unmarshal(ECHConfig.public_key)
-   enc, context = SetupBaseS(pkR, "tls13-ech")
-   ech_nonce_value = context.Export("tls13-ech-nonce", 16)
-   ech_hrr_key = context.Export("tls13-ech-hrr-key", 16)
-
 
 
 
@@ -561,6 +561,11 @@ Rescorla, et al.        Expires 11 February 2021               [Page 10]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+   pkR = HPKE.KEM.Unmarshal(ECHConfig.public_key)
+   enc, context = SetupBaseS(pkR, "tls13-ech")
+   ech_nonce_value = context.Export("tls13-ech-nonce", 16)
+   ech_hrr_key = context.Export("tls13-ech-hrr-key", 16)
 
    Note that the HPKE algorithm identifiers are those which match the
    client's chosen preference from ECHConfig.cipher_suites.  The client
@@ -605,11 +610,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    would divulge the true server name.  The remaining contents of the
    ClientHelloOuter MAY be identical to those in ClientHelloInner but
    MAY also differ.
-
-
-
-
-
 
 
 
@@ -745,7 +745,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    When the server cannot decrypt or does not process the
    "encrypted_client_hello" extension, it continues with the handshake
-   using the cleartext "server_name" extension instead (see Section 8).
+   using the plaintext "server_name" extension instead (see Section 8).
    Clients that offer ECH then authenticate the connection with the
    public name, as follows:
 
@@ -919,7 +919,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       correspond to ECH PSKs.  ECH PSKs offered by the client are
       associated with the ECH name.  The server was unable to decrypt
       then ECH name, so it should not resume them when using the
-      cleartext SNI name.  This restriction allows a client to reject
+      plaintext SNI name.  This restriction allows a client to reject
       resumptions in Section 7.3.2.1.
 
    Note that an unrecognized ClientEncryptedCH.record_digest value may
@@ -980,7 +980,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    Unlike most TLS extensions, placing the SNI value in an ECH extension
    is not interoperable with existing servers, which expect the value in
-   the existing cleartext extension.  Thus server operators SHOULD
+   the existing plaintext extension.  Thus server operators SHOULD
    ensure servers understand a given set of ECH keys before advertising
    them.  Additionally, servers SHOULD retain support for any
    previously-advertised keys for the duration of their validity
@@ -1087,7 +1087,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    possible to identify that host based on the contents of unencrypted
    handshake messages.
 
-10.2.  Unauthenticated and Cleartext DNS
+10.2.  Unauthenticated and Plaintext DNS
 
    In comparison to [I-D.kazuho-protected-sni], wherein DNS Resource
    Records are signed via a server private key, ECH records have no
@@ -1265,7 +1265,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    Assuming ECH records retrieved from DNS are authenticated, e.g., via
    DNSSEC or fetched from a trusted Recursive Resolver, spoofing a
    server operating in Split Mode is not possible.  See Section 10.2 for
-   more details regarding cleartext DNS.
+   more details regarding plaintext DNS.
 
    Authenticating the ECHConfigs structure naturally authenticates the
    included public name.  This also authenticates any retry signals from
