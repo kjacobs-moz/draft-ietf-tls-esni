@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-07-31T00:11:53.773801+00:00",
+  "timestamp": "2020-08-10T19:55:05.816439+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -4947,6 +4947,54 @@
           "updatedAt": "2020-06-25T23:52:03Z"
         }
       ]
+    },
+    {
+      "number": 251,
+      "id": "MDU6SXNzdWU2NzAwMTgzMDY=",
+      "title": "Common supported KEM",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/251",
+      "state": "OPEN",
+      "author": "FredericJacobs",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "It might make sense to have a default KEM that all implementations would need to support for each ECH version.\r\n\r\nThis would prevent clients to have to support all KEMs at the risk of falling back to plaintext because they don't support the server-supported KEM.\r\n",
+      "createdAt": "2020-07-31T17:01:52Z",
+      "updatedAt": "2020-07-31T17:01:52Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 252,
+      "id": "MDU6SXNzdWU2NzMxNjc5OTI=",
+      "title": "Avoid padding cliff",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/252",
+      "state": "OPEN",
+      "author": "bemasc",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 7.2 says\r\n> 1. If L > D, add L - D bytes of padding. This rounds to the server's advertised hint, i.e., ECHConfig.maximum_name_length.\r\n> 2. Otherwise, add 32 - (D % 32) bytes of padding. This rounds D up to the nearest multiple of 32 bytes.\r\n\r\nThis has some problems:\r\n\r\n1. If L == D, or D > L and D % 32 == 0, this results in unnecessary padding.\r\n2. If L == D == 31, there is no length protection.  The output is 32, and that is the only length that produces that output.\r\n\r\nThe easiest solution is to replace \"32 - (D % 32)\" with \"(L - D) & 0x1f\".  This pads up to the nearest L + 32*n.\r\n\r\nIf it's considered important to pad to a multiple of 32, I would suggest ensuring that the initial bucket is at least 32, e.g. \r\n\r\n> 1. If L >= D, add L - D bytes of padding. This rounds to the server's advertised hint, i.e., ECHConfig.maximum_name_length.\r\n> 2. Otherwise, add 31 - ((D - 1) % 32) bytes of padding, plus an additional 32 bytes if L > 0 and D < L + 31 - ((L - 1) % 32)",
+      "createdAt": "2020-08-05T00:34:55Z",
+      "updatedAt": "2020-08-05T00:34:55Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 253,
+      "id": "MDU6SXNzdWU2NzMyMDYxMTQ=",
+      "title": "Nonce rationale clarity",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/253",
+      "state": "OPEN",
+      "author": "bemasc",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "There are several rationales provided about the need for `ech_nonce`:\r\n\r\n1. This nonce ensures that the server's encrypted Certificate can only be read by the entity which sent this ClientHello.\r\n2. Since servers process either ClientHelloInner or ClientHelloOuter, and ClientHelloInner contains an HPKE-derived nonce, it is not possible for an attacker to \"cut and paste\" the ECH value in a different Client Hello and learn information from ClientHelloInner. This is because the attacker lacks access to the HPKE-derived nonce used to derive the handshake secrets.\r\n3. Client Reaction Attack Mitigation ... The \"ech_nonce\" extension in the inner ClientHello prevents this attack. In particular, since the attacker does not have access to this value, it cannot produce the right transcript and handshake keys needed for encrypting the Certificate message. Thus, the client will fail to decrypt the Certificate and abort the connection.\r\n\r\nThese rationales are all subtly different, and having read them all, I still don't understand why the nonce is necessary, when the server_handshake_traffic_secret already depends on the inner client random, which is not known to the attacker.\r\n\r\nI would appreciate some more explanation on this point.  It also might make sense to move these rationales up into the ech_nonce section, or add forward references to them there.",
+      "createdAt": "2020-08-05T02:33:20Z",
+      "updatedAt": "2020-08-05T02:33:20Z",
+      "closedAt": null,
+      "comments": []
     }
   ],
   "pulls": [
@@ -17009,7 +17057,7 @@
       "labels": [],
       "body": "Fixes a minor search/replace mistake in #236.",
       "createdAt": "2020-07-30T18:25:11Z",
-      "updatedAt": "2020-07-31T00:11:29Z",
+      "updatedAt": "2020-07-31T00:14:24Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "ce728f09363ef83341d77ba6f7d9d9b2732bd053",
@@ -17043,6 +17091,74 @@
           "body": "",
           "createdAt": "2020-07-31T00:11:18Z",
           "updatedAt": "2020-07-31T00:11:18Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 254,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY0ODIzNzk1",
+      "title": "Lint the document",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/254",
+      "state": "CLOSED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This PR replaces \". \" (period followed by one space) with \".  \" (period followed by two spaces) and ensures each line is at most 80 characters. No other changes (editorial or otherwise) are intended.",
+      "createdAt": "2020-08-07T20:54:36Z",
+      "updatedAt": "2020-08-10T19:41:40Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d322c0f5b695b623f8d0630df6e821ab2a00bae5",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "master",
+      "headRefOid": "d322c0f5b695b623f8d0630df6e821ab2a00bae5",
+      "closedAt": "2020-08-10T19:41:40Z",
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 255,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY1Njk4MTgz",
+      "title": "Lint",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/255",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This ensures that each paragraph line breaks at 80 characters. No other change is intended (editorial or otherwise).",
+      "createdAt": "2020-08-10T19:53:09Z",
+      "updatedAt": "2020-08-10T19:54:16Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "d322c0f5b695b623f8d0630df6e821ab2a00bae5",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "edit1",
+      "headRefOid": "1edc81121901c44dda39aba55401aba579aeb4e9",
+      "closedAt": "2020-08-10T19:54:16Z",
+      "mergedAt": "2020-08-10T19:54:16Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "fca62c225d87cc8403c847358285c2c69c5ef647"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NTMzNDA3",
+          "commit": {
+            "abbreviatedOid": "1edc811"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-10T19:54:12Z",
+          "updatedAt": "2020-08-10T19:54:12Z",
           "comments": []
         }
       ]
