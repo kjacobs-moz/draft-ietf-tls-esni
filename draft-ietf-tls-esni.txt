@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 11 February 2021                                         Fastly
+Expires: 12 February 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                          10 August 2020
+                                                          11 August 2020
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 11 February 2021.
+   This Internet-Draft will expire on 12 February 2021.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 1]
+Rescorla, et al.        Expires 12 February 2021                [Page 1]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -76,7 +76,7 @@ Table of Contents
        7.3.1.  Accepted ECH  . . . . . . . . . . . . . . . . . . . .  13
        7.3.2.  Rejected ECH  . . . . . . . . . . . . . . . . . . . .  13
        7.3.3.  HelloRetryRequest . . . . . . . . . . . . . . . . . .  15
-     7.4.  GREASE extensions . . . . . . . . . . . . . . . . . . . .  15
+     7.4.  GREASE extensions . . . . . . . . . . . . . . . . . . . .  16
    8.  Client-Facing Server Behavior . . . . . . . . . . . . . . . .  16
    9.  Compatibility Issues  . . . . . . . . . . . . . . . . . . . .  18
      9.1.  Misconfiguration and Deployment Concerns  . . . . . . . .  18
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 2]
+Rescorla, et al.        Expires 12 February 2021                [Page 2]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -165,7 +165,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 3]
+Rescorla, et al.        Expires 12 February 2021                [Page 3]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -221,19 +221,19 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 4]
+Rescorla, et al.        Expires 12 February 2021                [Page 4]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-                   +--------------------+       +---------------------+
-                   |                    |       |                     |
-                   |   2001:DB8::1111   |       |   2001:DB8::EEEE    |
-   Client <------------------------------------>|                     |
-                   | public.example.com |       | private.example.com |
-                   |                    |       |                     |
-                   +--------------------+       +---------------------+
-                     Client-Facing Server            Backend Server
+              +--------------------+     +---------------------+
+              |                    |     |                     |
+              |   2001:DB8::1111   |     |   2001:DB8::EEEE    |
+   Client <----------------------------->|                     |
+              | public.example.com |     | private.example.com |
+              |                    |     |                     |
+              +--------------------+     +---------------------+
+               Client-Facing Server            Backend Server
 
                        Figure 2: Split Mode Topology
 
@@ -277,7 +277,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 5]
+Rescorla, et al.        Expires 12 February 2021                [Page 5]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -333,7 +333,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 6]
+Rescorla, et al.        Expires 12 February 2021                [Page 6]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -389,7 +389,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 7]
+Rescorla, et al.        Expires 12 February 2021                [Page 7]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -445,7 +445,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 8]
+Rescorla, et al.        Expires 12 February 2021                [Page 8]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -501,7 +501,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021                [Page 9]
+Rescorla, et al.        Expires 12 February 2021                [Page 9]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -557,7 +557,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 10]
+Rescorla, et al.        Expires 12 February 2021               [Page 10]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -613,7 +613,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 11]
+Rescorla, et al.        Expires 12 February 2021               [Page 11]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -669,7 +669,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 12]
+Rescorla, et al.        Expires 12 February 2021               [Page 12]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -725,7 +725,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 13]
+Rescorla, et al.        Expires 12 February 2021               [Page 13]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -781,7 +781,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 14]
+Rescorla, et al.        Expires 12 February 2021               [Page 14]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -818,29 +818,35 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    value, servers setup their HPKE context and decrypt ClientEncryptedCH
    as follows:
 
-context = SetupPSKR(ClientEncryptedCH.enc, skR, "tls13-ech-hrr", ech_hrr_key, "")
-ClientHelloInner = context.Open("", ClientEncryptedCH.encrypted_ch)
-ech_nonce_value = context.Export("tls13-ech-hrr-nonce", 16)
+   context = SetupPSKR(ClientEncryptedCH.enc,
+     skR, "tls13-ech-hrr", ech_hrr_key, "")
+
+   ClientHelloInner =
+     context.Open("", ClientEncryptedCH.encrypted_ch)
+
+   ech_nonce_value = context.Export("tls13-ech-hrr-nonce", 16)
 
    [[OPEN ISSUE: Should we be using the PSK input or the info input?  On
    the one hand, the requirements on info seem weaker, but maybe
    actually this needs to be secret?  Analysis needed.]]
+
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 12 February 2021               [Page 15]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
 7.4.  GREASE extensions
 
    If the client attempts to connect to a server and does not have an
    ECHConfig structure available for the server, it SHOULD send a GREASE
    [RFC8701] "encrypted_client_hello" extension as follows:
-
-
-
-
-
-
-Rescorla, et al.        Expires 11 February 2021               [Page 15]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
 
    *  Set the "suite" field to a supported HpkeCipherSuite.  The
       selection SHOULD vary to exercise all supported configurations,
@@ -883,20 +889,17 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    1.  Compare ClientEncryptedCH.record_digest against cryptographic
        hashes of known ECHConfig and choose the one that matches.
 
-   2.  Use trial decryption of ClientEncryptedCH.encrypted_ch with known
-       ECHConfig and choose the one that succeeds.
 
 
 
 
-
-
-
-
-Rescorla, et al.        Expires 11 February 2021               [Page 16]
+Rescorla, et al.        Expires 12 February 2021               [Page 16]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
+
+   2.  Use trial decryption of ClientEncryptedCH.encrypted_ch with known
+       ECHConfig and choose the one that succeeds.
 
    Some uses of ECH, such as local discovery mode, may omit the
    ClientEncryptedCH.record_digest since it can be used as a tracking
@@ -935,7 +938,10 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    skR corresponding to ECHConfig, as follows:
 
    context = SetupBaseR(ClientEncryptedCH.enc, skR, "tls13-ech")
-   ClientHelloInner = context.Open("", ClientEncryptedCH.encrypted_ch)
+
+   ClientHelloInner =
+     context.Open("", ClientEncryptedCH.encrypted_ch)
+
    ech_nonce_value = context.Export("tls13-ech-nonce", 16)
    ech_hrr_key = context.Export("tls13-ech-hrr-key", 16)
 
@@ -943,13 +949,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-
-
-
-
-
-
-Rescorla, et al.        Expires 11 February 2021               [Page 17]
+Rescorla, et al.        Expires 12 February 2021               [Page 17]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1005,7 +1005,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 18]
+Rescorla, et al.        Expires 12 February 2021               [Page 18]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1061,7 +1061,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 19]
+Rescorla, et al.        Expires 12 February 2021               [Page 19]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1117,7 +1117,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 20]
+Rescorla, et al.        Expires 12 February 2021               [Page 20]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1173,7 +1173,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 21]
+Rescorla, et al.        Expires 12 February 2021               [Page 21]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1229,7 +1229,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 22]
+Rescorla, et al.        Expires 12 February 2021               [Page 22]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1285,7 +1285,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 23]
+Rescorla, et al.        Expires 12 February 2021               [Page 23]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1324,7 +1324,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    that scenario, a client which first verifies the Certificate would
    then respond similarly and leak the same information.
 
-    Client                         Attacker                      Server
+    Client                         Attacker               Server
       ClientHello
       + key_share
       + ech         ------>      (intercept)     -----> X (drop)
@@ -1341,7 +1341,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 24]
+Rescorla, et al.        Expires 12 February 2021               [Page 24]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1370,24 +1370,24 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    controlled) ClientHello, the Certificate produced would leak the
    client's chosen SNI to the attacker.
 
-    Client                         Attacker                      Server
+    Client                         Attacker                   Server
       ClientHello
       + key_share
       + ech         ------>       (forward)        ------->
-                                                      HelloRetryRequest
-                                                            + key_share
+                                                 HelloRetryRequest
+                                                       + key_share
                                  (intercept)       <-------
 
                                  ClientHello
                                  + key_share'
                                  + ech'           ------->
-                                                            ServerHello
-                                                            + key_share
-                                                  {EncryptedExtensions}
-                                                  {CertificateRequest*}
-                                                         {Certificate*}
-                                                   {CertificateVerify*}
-                                                             {Finished}
+                                                       ServerHello
+                                                       + key_share
+                                             {EncryptedExtensions}
+                                             {CertificateRequest*}
+                                                    {Certificate*}
+                                              {CertificateVerify*}
+                                                        {Finished}
                                                    <-------
                             (process server flight)
 
@@ -1397,7 +1397,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 25]
+Rescorla, et al.        Expires 12 February 2021               [Page 25]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1432,7 +1432,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    oracle that can be used to test the encrypted SNI value of specific
    ClientHello messages.
 
-          Client                    Attacker                    Server
+          Client                    Attacker                 Server
 
                                            handshake and ticket
                                               for "test.com"
@@ -1446,14 +1446,14 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
                                      + ech
                                      + pre_shared_key
                                                 -------->
-                                                                Alert
+                                                              Alert
                                                 <--------
 
                Figure 5: Message flow for resumption and PSK
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 26]
+Rescorla, et al.        Expires 12 February 2021               [Page 26]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1509,7 +1509,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 27]
+Rescorla, et al.        Expires 12 February 2021               [Page 27]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1565,7 +1565,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 28]
+Rescorla, et al.        Expires 12 February 2021               [Page 28]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1621,7 +1621,7 @@ A.1.  TLS-layer
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 29]
+Rescorla, et al.        Expires 12 February 2021               [Page 29]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1677,7 +1677,7 @@ A.2.  Application-layer
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 30]
+Rescorla, et al.        Expires 12 February 2021               [Page 30]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1733,7 +1733,7 @@ Appendix B.  Total Client Hello Encryption
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 31]
+Rescorla, et al.        Expires 12 February 2021               [Page 31]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1789,4 +1789,4 @@ Authors' Addresses
 
 
 
-Rescorla, et al.        Expires 11 February 2021               [Page 32]
+Rescorla, et al.        Expires 12 February 2021               [Page 32]
