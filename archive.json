@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-10T19:55:05.816439+00:00",
+  "timestamp": "2020-08-11T13:08:32.907930+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -17133,7 +17133,7 @@
       "labels": [],
       "body": "This ensures that each paragraph line breaks at 80 characters. No other change is intended (editorial or otherwise).",
       "createdAt": "2020-08-10T19:53:09Z",
-      "updatedAt": "2020-08-10T19:54:16Z",
+      "updatedAt": "2020-08-11T13:01:41Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "d322c0f5b695b623f8d0630df6e821ab2a00bae5",
@@ -17146,7 +17146,22 @@
       "mergeCommit": {
         "oid": "fca62c225d87cc8403c847358285c2c69c5ef647"
       },
-      "comments": [],
+      "comments": [
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Do you want to borrow the linter that we use in QUIC?  Just copy [these lines](https://github.com/quicwg/base-drafts/blob/1373d195146a5a0d5ea911816ecb6d813b129545/Makefile#L15-L26) to your Makefile along with [this script](https://github.com/quicwg/base-drafts/blob/master/.lint.py).",
+          "createdAt": "2020-08-11T01:40:19Z",
+          "updatedAt": "2020-08-11T01:40:19Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Brilliant!",
+          "createdAt": "2020-08-11T13:01:41Z",
+          "updatedAt": "2020-08-11T13:01:41Z"
+        }
+      ],
       "reviews": [
         {
           "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NTMzNDA3",
@@ -17162,6 +17177,216 @@
           "comments": []
         }
       ]
+    },
+    {
+      "number": 256,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY1NzEyOTU3",
+      "title": "Editorial",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/256",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "- Use the term \"plaintext\" consistently.\r\n- Be consistent about the number of spaces following a period. (We'll go with one.)\r\n- Editorial changes to Sec.1-3.",
+      "createdAt": "2020-08-10T20:23:46Z",
+      "updatedAt": "2020-08-10T23:05:37Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "fca62c225d87cc8403c847358285c2c69c5ef647",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "edit1",
+      "headRefOid": "c6a2ae2ee2a783478ba0cefba3dc4ebb932fa520",
+      "closedAt": "2020-08-10T23:05:37Z",
+      "mergedAt": "2020-08-10T23:05:37Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "f182eae1482934f7dfdc4846ff78d2bdcf610b8e"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjE1MjIx",
+          "commit": {
+            "abbreviatedOid": "ba5b747"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "LGTM modulo some nits. Thanks!",
+          "createdAt": "2020-08-10T21:55:35Z",
+          "updatedAt": "2020-08-10T22:05:15Z",
+          "comments": [
+            {
+              "originalPosition": 22,
+              "body": "```suggestion\r\nThe TLS Working Group has studied the problem of protecting the SNI, but has\r\n```",
+              "createdAt": "2020-08-10T21:55:36Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 36,
+              "body": "```suggestion\r\nThe protocol specified by this document takes a different approach. It assumes\r\n```",
+              "createdAt": "2020-08-10T21:55:54Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 63,
+              "body": "```suggestion\r\nThis protocol is designed to operate in one of two topologies illustrated\r\n```",
+              "createdAt": "2020-08-10T21:56:47Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 98,
+              "body": "```suggestion\r\nand backend servers are physically separated.\r\n```",
+              "createdAt": "2020-08-10T21:58:18Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 131,
+              "body": "```suggestion\r\nClientHelloInner message) and then encrypts this message using the ECH public key. It then\r\n```",
+              "createdAt": "2020-08-10T22:00:28Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 142,
+              "body": "```suggestion\r\nUpon receiving ClientHelloOuter, the client-facing server processes the encrypted\r\n```",
+              "createdAt": "2020-08-10T22:01:41Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 142,
+              "body": "Since decryption may fail",
+              "createdAt": "2020-08-10T22:01:48Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            },
+            {
+              "originalPosition": 91,
+              "body": "```suggestion\r\nterminates the TLS connection with the client. Importantly, the provider does not have access\r\nto the plaintext of the connection.\r\n```",
+              "createdAt": "2020-08-10T22:05:06Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjIzMTg5",
+          "commit": {
+            "abbreviatedOid": "84cd441"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-10T22:11:44Z",
+          "updatedAt": "2020-08-10T22:11:44Z",
+          "comments": [
+            {
+              "originalPosition": 142,
+              "body": "ack",
+              "createdAt": "2020-08-10T22:11:44Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjIzMjQ5",
+          "commit": {
+            "abbreviatedOid": "84cd441"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-10T22:11:52Z",
+          "updatedAt": "2020-08-10T22:11:52Z",
+          "comments": [
+            {
+              "originalPosition": 142,
+              "body": "fixing",
+              "createdAt": "2020-08-10T22:11:52Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjI1MDIw",
+          "commit": {
+            "abbreviatedOid": "84cd441"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-10T22:15:49Z",
+          "updatedAt": "2020-08-10T22:15:50Z",
+          "comments": [
+            {
+              "originalPosition": 98,
+              "body": "When I first read this document, I thought the fact that the SNI was sent in the clear from the client-facing server to the backend server was an attack. As such, I think we want to be explicit about this assumption. This seems like a reasonable place to do so since we're talking about the parties in the protocol and how they communicate with one another.",
+              "createdAt": "2020-08-10T22:15:50Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjI2MDk1",
+          "commit": {
+            "abbreviatedOid": "907ff3d"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-10T22:18:01Z",
+          "updatedAt": "2020-08-10T22:18:01Z",
+          "comments": [
+            {
+              "originalPosition": 98,
+              "body": "There's a couple reasons I push back here: (1) the connection might not be long-lived, and (2) the threat we're mostly concerned with is the client<->client-facing-server snooper (an adversary which sees client-facing-server<->backend connections might learn the SNI if it were not encrypted, but it wouldn't learn the client's IP. Basically, this is too restrictive of a threat model, and somewhat orthogonal to the protocol itself. ",
+              "createdAt": "2020-08-10T22:18:01Z",
+              "updatedAt": "2020-08-10T22:27:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY0NjQ0OTk0",
+          "commit": {
+            "abbreviatedOid": "c6a2ae2"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-10T23:05:32Z",
+          "updatedAt": "2020-08-10T23:05:32Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 257,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY2MDkzMzk1",
+      "title": "Adopt QUIC linter, and fix some issues flagged.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/257",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Thanks, @martinthomson!",
+      "createdAt": "2020-08-11T13:08:05Z",
+      "updatedAt": "2020-08-11T13:08:05Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "f182eae1482934f7dfdc4846ff78d2bdcf610b8e",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/adopt-quic-linter",
+      "headRefOid": "d134dac10ae79ecd680267a95cea7f123e8d6d14",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
     }
   ]
 }
