@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 12 February 2021                                         Fastly
+Expires: 14 February 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                          11 August 2020
+                                                          13 August 2020
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 12 February 2021.
+   This Internet-Draft will expire on 14 February 2021.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 1]
+Rescorla, et al.        Expires 14 February 2021                [Page 1]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -66,65 +66,66 @@ Table of Contents
      3.1.  Topologies  . . . . . . . . . . . . . . . . . . . . . . .   4
      3.2.  Encrypted ClientHello (ECH) . . . . . . . . . . . . . . .   5
    4.  Encrypted ClientHello Configuration . . . . . . . . . . . . .   6
-   5.  The "encrypted_client_hello" extension  . . . . . . . . . . .   8
-   6.  The "ech_nonce" extension . . . . . . . . . . . . . . . . . .   9
-     6.1.  Incorporating Outer Extensions  . . . . . . . . . . . . .   9
-   7.  Client Behavior . . . . . . . . . . . . . . . . . . . . . . .  10
-     7.1.  Sending an encrypted ClientHello  . . . . . . . . . . . .  10
-     7.2.  Recommended Padding Scheme  . . . . . . . . . . . . . . .  12
-     7.3.  Handling the server response  . . . . . . . . . . . . . .  12
-       7.3.1.  Accepted ECH  . . . . . . . . . . . . . . . . . . . .  13
-       7.3.2.  Rejected ECH  . . . . . . . . . . . . . . . . . . . .  13
-       7.3.3.  HelloRetryRequest . . . . . . . . . . . . . . . . . .  15
-     7.4.  GREASE extensions . . . . . . . . . . . . . . . . . . . .  16
-   8.  Client-Facing Server Behavior . . . . . . . . . . . . . . . .  16
-   9.  Compatibility Issues  . . . . . . . . . . . . . . . . . . . .  18
-     9.1.  Misconfiguration and Deployment Concerns  . . . . . . . .  18
-     9.2.  Middleboxes . . . . . . . . . . . . . . . . . . . . . . .  19
-   10. Security Considerations . . . . . . . . . . . . . . . . . . .  19
-     10.1.  Security and Privacy Goals . . . . . . . . . . . . . . .  19
-     10.2.  Unauthenticated and Plaintext DNS  . . . . . . . . . . .  20
-     10.3.  Client Tracking  . . . . . . . . . . . . . . . . . . . .  21
-     10.4.  Optional Record Digests and Trial Decryption . . . . . .  21
-     10.5.  Related Privacy Leaks  . . . . . . . . . . . . . . . . .  21
-     10.6.  Comparison Against Criteria  . . . . . . . . . . . . . .  22
-       10.6.1.  Mitigate against replay attacks  . . . . . . . . . .  22
-       10.6.2.  Avoid widely-deployed shared secrets . . . . . . . .  22
-       10.6.3.  Prevent SNI-based DoS attacks  . . . . . . . . . . .  22
-       10.6.4.  Do not stick out . . . . . . . . . . . . . . . . . .  23
-       10.6.5.  Forward secrecy  . . . . . . . . . . . . . . . . . .  23
-       10.6.6.  Proper security context  . . . . . . . . . . . . . .  23
-       10.6.7.  Split server spoofing  . . . . . . . . . . . . . . .  23
-       10.6.8.  Supporting multiple protocols  . . . . . . . . . . .  23
-     10.7.  Padding Policy . . . . . . . . . . . . . . . . . . . . .  24
-     10.8.  Active Attack Mitigations  . . . . . . . . . . . . . . .  24
-       10.8.1.  Client Reaction Attack Mitigation  . . . . . . . . .  24
-       10.8.2.  HelloRetryRequest Hijack Mitigation  . . . . . . . .  25
-       10.8.3.  Resumption PSK Oracle Mitigation . . . . . . . . . .  26
-   11. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  27
-     11.1.  Update of the TLS ExtensionType Registry . . . . . . . .  27
-     11.2.  Update of the TLS Alert Registry . . . . . . . . . . . .  27
-   12. ECHConfig Extension Guidance  . . . . . . . . . . . . . . . .  27
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  27
+     4.1.  Configuration Extensions  . . . . . . . . . . . . . . . .   8
+   5.  The "encrypted_client_hello" extension  . . . . . . . . . . .   9
+   6.  The "ech_nonce" extension . . . . . . . . . . . . . . . . . .  10
+     6.1.  Incorporating Outer Extensions  . . . . . . . . . . . . .  10
+   7.  Client Behavior . . . . . . . . . . . . . . . . . . . . . . .  11
+     7.1.  Sending an encrypted ClientHello  . . . . . . . . . . . .  11
+     7.2.  Recommended Padding Scheme  . . . . . . . . . . . . . . .  13
+     7.3.  Handling the server response  . . . . . . . . . . . . . .  13
+       7.3.1.  Accepted ECH  . . . . . . . . . . . . . . . . . . . .  14
+       7.3.2.  Rejected ECH  . . . . . . . . . . . . . . . . . . . .  14
+       7.3.3.  HelloRetryRequest . . . . . . . . . . . . . . . . . .  16
+     7.4.  GREASE extensions . . . . . . . . . . . . . . . . . . . .  17
+   8.  Client-Facing Server Behavior . . . . . . . . . . . . . . . .  17
+   9.  Compatibility Issues  . . . . . . . . . . . . . . . . . . . .  19
+     9.1.  Misconfiguration and Deployment Concerns  . . . . . . . .  19
+     9.2.  Middleboxes . . . . . . . . . . . . . . . . . . . . . . .  20
+   10. Security Considerations . . . . . . . . . . . . . . . . . . .  20
+     10.1.  Security and Privacy Goals . . . . . . . . . . . . . . .  20
+     10.2.  Unauthenticated and Plaintext DNS  . . . . . . . . . . .  21
+     10.3.  Client Tracking  . . . . . . . . . . . . . . . . . . . .  22
+     10.4.  Optional Record Digests and Trial Decryption . . . . . .  22
+     10.5.  Related Privacy Leaks  . . . . . . . . . . . . . . . . .  22
+     10.6.  Comparison Against Criteria  . . . . . . . . . . . . . .  23
+       10.6.1.  Mitigate against replay attacks  . . . . . . . . . .  23
+       10.6.2.  Avoid widely-deployed shared secrets . . . . . . . .  23
+       10.6.3.  Prevent SNI-based DoS attacks  . . . . . . . . . . .  23
+       10.6.4.  Do not stick out . . . . . . . . . . . . . . . . . .  24
+       10.6.5.  Forward secrecy  . . . . . . . . . . . . . . . . . .  24
+       10.6.6.  Proper security context  . . . . . . . . . . . . . .  24
+       10.6.7.  Split server spoofing  . . . . . . . . . . . . . . .  24
+       10.6.8.  Supporting multiple protocols  . . . . . . . . . . .  24
+     10.7.  Padding Policy . . . . . . . . . . . . . . . . . . . . .  25
+     10.8.  Active Attack Mitigations  . . . . . . . . . . . . . . .  25
+       10.8.1.  Client Reaction Attack Mitigation  . . . . . . . . .  25
+       10.8.2.  HelloRetryRequest Hijack Mitigation  . . . . . . . .  26
+       10.8.3.  Resumption PSK Oracle Mitigation . . . . . . . . . .  27
+   11. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  28
+     11.1.  Update of the TLS ExtensionType Registry . . . . . . . .  28
+     11.2.  Update of the TLS Alert Registry . . . . . . . . . . . .  28
+   12. ECHConfig Extension Guidance  . . . . . . . . . . . . . . . .  28
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 2]
+Rescorla, et al.        Expires 14 February 2021                [Page 2]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-     13.1.  Normative References . . . . . . . . . . . . . . . . . .  27
-     13.2.  Informative References . . . . . . . . . . . . . . . . .  28
-   Appendix A.  Alternative SNI Protection Designs . . . . . . . . .  29
-     A.1.  TLS-layer . . . . . . . . . . . . . . . . . . . . . . . .  29
-       A.1.1.  TLS in Early Data . . . . . . . . . . . . . . . . . .  30
-       A.1.2.  Combined Tickets  . . . . . . . . . . . . . . . . . .  30
-     A.2.  Application-layer . . . . . . . . . . . . . . . . . . . .  30
-       A.2.1.  HTTP/2 CERTIFICATE Frames . . . . . . . . . . . . . .  31
-   Appendix B.  Total Client Hello Encryption  . . . . . . . . . . .  31
-   Appendix C.  Acknowledgements . . . . . . . . . . . . . . . . . .  32
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  32
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  28
+     13.1.  Normative References . . . . . . . . . . . . . . . . . .  28
+     13.2.  Informative References . . . . . . . . . . . . . . . . .  29
+   Appendix A.  Alternative SNI Protection Designs . . . . . . . . .  30
+     A.1.  TLS-layer . . . . . . . . . . . . . . . . . . . . . . . .  30
+       A.1.1.  TLS in Early Data . . . . . . . . . . . . . . . . . .  31
+       A.1.2.  Combined Tickets  . . . . . . . . . . . . . . . . . .  31
+     A.2.  Application-layer . . . . . . . . . . . . . . . . . . . .  31
+       A.2.1.  HTTP/2 CERTIFICATE Frames . . . . . . . . . . . . . .  32
+   Appendix B.  Total Client Hello Encryption  . . . . . . . . . . .  32
+   Appendix C.  Acknowledgements . . . . . . . . . . . . . . . . . .  33
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  33
 
 1.  Introduction
 
@@ -164,8 +165,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-
-Rescorla, et al.        Expires 12 February 2021                [Page 3]
+Rescorla, et al.        Expires 14 February 2021                [Page 3]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -221,7 +221,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 4]
+Rescorla, et al.        Expires 14 February 2021                [Page 4]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -277,20 +277,66 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 5]
+Rescorla, et al.        Expires 14 February 2021                [Page 5]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-   Upon receiving ClientHelloOuter, the client-facing server processes
-   the encrypted ClientHelloInner and either terminates the connection
-   (in Shared Mode) or forwards it to the backend server (in Split
-   Mode).
+   Upon receiving the ClientHelloOuter, the client-facing server takes
+   one of the following actions:
+
+   1.  If it does not support ECH, it ignores the
+       "encrypted_client_hello" extension and proceeds with the
+       handshake as usual, per [RFC8446], Section 4.1.2.
+
+   2.  If it supports ECH but cannot decrypt it, then it ignores the
+       extension and proceeds with the handshake as usual.  This is
+       referred to as "ECH rejection".  When ECH is rejected, the server
+       sends an acceptable ECH configuration in its EncryptedExtensions
+       message.
+
+   3.  If it supports ECH and can decrypt it, then it forwards the
+       CllientHelloInner to the backend, who terminates the connection.
+       This is referred to as "ECH acceptance".
+
+   Upon receiving the server's response, the client determines whether
+   ECH was accepted or rejected and proceeds with the handshake
+   accordingly.  (See Section 7 for details.)
 
 4.  Encrypted ClientHello Configuration
 
-   ClientHello encryption configuration information is conveyed with the
-   following ECHConfigs structure.
+   ECH uses HPKE for public key encryption [I-D.irtf-cfrg-hpke].  The
+   ECH configuration is defined by the following "ECHConfigs" structure.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 14 February 2021                [Page 6]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
        opaque HpkePublicKey<1..2^16-1>;
        uint16 HkpeKemId;  // Defined in I-D.irtf-cfrg-hpke
@@ -323,43 +369,49 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
        ECHConfig ECHConfigs<1..2^16-1>;
 
-   The ECHConfigs structure contains one or more ECHConfig structures in
-   decreasing order of preference.  This allows a server to support
-   multiple versions of ECH and multiple sets of ECH parameters.
+   The "ECHConfigs" structure contains one or more "ECHConfig"
+   structures in decreasing order of preference.  This allows a server
+   to support multiple versions of ECH and multiple sets of ECH
+   parameters.
 
-   The ECHConfig structure contains the following fields:
+   The "ECHConfig" structure contains the following fields:
 
-   version  The version of the structure.  For this specification, that
+   version  The version of ECH for which this configuration is used.
+      The version of this document SHALL be "0xff07".  (Future drafts
+      and the final version MUST define a version that has not already
+      been assigned.)  Clients MUST ignore any "ECHConfig" structure
+      with a version they do not support.
+
+   length  The length, in bytes, of the next field.
+
+   contents  An opaque byte string whose contents depend on the version
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 6]
+
+Rescorla, et al.        Expires 14 February 2021                [Page 7]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-      value SHALL be 0xff07.  Clients MUST ignore any ECHConfig
-      structure with a version they do not understand.
-
-   contents  An opaque byte string whose contents depend on the version
       of the structure.  For this specification, the contents are an
-      ECHConfigContents structure.
+      "ECHConfigContents" structure.
 
-   The ECHConfigContents structure contains the following fields:
+   The "ECHConfigContents" structure contains the following fields:
 
-   public_name  The non-empty name of the entity trusted to update these
-      encryption keys.  This is used to repair misconfigurations, as
-      described in Section 7.3.
+   public_name  The non-empty name of client-facing server, i.e., the
+      entity trusted to update these encryption keys.  This is used to
+      repair misconfigurations, as described in Section 7.3.
 
-   public_key  The HPKE [I-D.irtf-cfrg-hpke] public key which can be
-      used by the client to encrypt the ClientHello.
+   public_key  The HPKE public key used by the client to encrypt
+      ClientHelloInner.
 
-   kem_id  The HPKE [I-D.irtf-cfrg-hpke] KEM identifier corresponding to
-      public_key.  Clients MUST ignore any ECHConfig structure with a
-      key using a KEM they do not support.
+   kem_id  The HPKE KEM identifier corresponding to "public_key".
+      Clients MUST ignore any "ECHConfig" structure with a key using a
+      KEM they do not support.
 
-   cipher_suites  The list of HPKE [I-D.irtf-cfrg-hpke] AEAD and KDF
-      identifier pairs clients can use for encrypting the ClientHello.
+   cipher_suites  The list of HPKE AEAD and KDF identifier pairs clients
+      can use for encrypting ClientHelloInner.
 
    maximum_name_length  The largest name the server expects to support,
       if known.  If this value is not known it can be set to zero, in
@@ -368,28 +420,32 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       or if names can be added or removed from the anonymity set during
       the lifetime of a particular resource record value.
 
-   extensions  A list of extensions that the client can take into
-      consideration when generating a ClientHello message.  The purpose
-      of the field is to provide room for additional functionality in
-      the future.  See Section 12 for guidance on what type of
-      extensions are appropriate for this structure.
+   extensions  A list of extensions that the client must take into
+      consideration when generating a ClientHello message.  These are
+      described below (Section 4.1).
 
-   The format is defined in [RFC8446], Section 4.2.  The same
+4.1.  Configuration Extensions
+
+   ECH configuration extensions are used to to provide room for
+   additional functionality as needed.  See Section 12 for guidance on
+   which types of extensions are appropriate for this structure.
+
+   The format is as defined in [RFC8446], Section 4.2.  The same
    interpretation rules apply: extensions MAY appear in any order, but
    there MUST NOT be more than one extension of the same type in the
    extensions block.  An extension can be tagged as mandatory by using
    an extension type codepoint with the high order bit set to 1.  A
-   client which receives a mandatory extension they do not understand
-   MUST reject the ECHConfig content.
+   client that receives a mandatory extension they do not understand
+   MUST reject the "ECHConfig" content.
 
    Clients MUST parse the extension list and check for unsupported
    mandatory extensions.  If an unsupported mandatory extension is
-   present, clients MUST reject the ECHConfig value.
+   present, clients MUST ignore the "ECHConfig".
 
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 7]
+Rescorla, et al.        Expires 14 February 2021                [Page 8]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -399,87 +455,86 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    The encrypted ClientHelloInner is carried in an
    "encrypted_client_hello" extension, defined as follows:
 
-      enum {
+       enum {
           encrypted_client_hello(0xff02), (65535)
-      } ExtensionType;
+       } ExtensionType;
 
-   For clients (in ClientHello), this extension contains the following
-   ClientEncryptedCH structure:
+   The extension request is carried by the ClientHelloOuter, i.e., the
+   ClientHello transmitted to the client-facing server.  The payload
+   contains the following "ClientEncryptedCH" structure:
 
-      struct {
-          HpkeCipherSuite suite;
-          opaque record_digest<0..2^16-1>;
+       struct {
+          HpkeCipherSuite cipher_suite;
+          opaque config_digest<0..2^16-1>;
           opaque enc<1..2^16-1>;
           opaque encrypted_ch<1..2^16-1>;
-      } ClientEncryptedCH;
+       } ClientEncryptedCH;
 
-   suite  The HpkeCipherSuite cipher suite used to encrypt
-      ClientHelloInner.  This MUST match a value provided in the
-      corresponding ECHConfig.cipher_suites list.
+   cipher_suite  The cipher suite used to encrypt ClientHelloInner.
+      This MUST match a value provided in the corresponding
+      "ECHConfig.cipher_suites" list.
 
-   record_digest  A cryptographic hash of the ECHConfig structure from
+   config_digest  A cryptographic hash of the "ECHConfig" structure from
       which the ECH key was obtained, i.e., from the first byte of
       "version" to the end of the structure.  This hash is computed
-      using the hash function associated with "suite", i.e., the
+      using the hash function associated with "cipher_suite", i.e., the
       corresponding HPKE KDF algorithm hash.
 
    enc  The HPKE encapsulated key, used by servers to decrypt the
-      corresponding encrypted_ch field.
+      corresponding "encrypted_ch" field.
 
    encrypted_ch  The serialized and encrypted ClientHelloInner
-      structure, AEAD-encrypted using HPKE with the selected KEM, KDF,
-      and AEAD algorithm and key generated as described below. {:br}
+      structure, encrypted using HPKE as described in Section 7.1.
 
-   If the server accepts ECH, it does not send this extension.  If it
-   rejects ECH, then it sends the following structure in
-   EncryptedExtensions:
+   When the client-facing server accepts ECH, it does not send this
+   extension.  When it rejects, it adds an "encrypted_client_hello"
+   extension to EncryptedExtensions with the following structure as the
+   payload:
 
-      struct {
+       struct {
           ECHConfigs retry_configs;
-      } ServerEncryptedCH;
+       } ServerEncryptedCH;
 
    retry_configs  An ECHConfigs structure containing one or more
-      ECHConfig structures in decreasing order of preference that the
-      client should use on subsequent connections to encrypt the
-      ClientHelloInner structure.
+      ECHConfig structures, in decreasing order of preference, to be
+      used by the client in subsequent connection attempts.
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 8]
+Rescorla, et al.        Expires 14 February 2021                [Page 9]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-   This protocol also defines the "ech_required" alert, which is sent by
-   the client when it offered an "encrypted_client_hello" extension
-   which was not accepted by the server.
+   This document also defines the "ech_required" alert, which clients
+   MUST send when it offered an "encrypted_client_hello" extension that
+   was not accepted by the server.  (See Section 11.1.)
 
 6.  The "ech_nonce" extension
 
-   When using ECH, the client MUST also add an extension of type
-   "ech_nonce" to the ClientHelloInner (but not to the outer
-   ClientHello).  This nonce ensures that the server's encrypted
-   Certificate can only be read by the entity which sent this
+   When using ECH, the client MUST include an extension of type
+   "ech_nonce" to the ClientHelloInner (but not to the
+   ClientHelloOuter).  This nonce is used to ensure that the server's
+   encrypted Certificate can only be read by the entity which sent this
    ClientHello.  This extension is defined as follows:
 
-      enum {
+       enum {
           ech_nonce(0xff03), (65535)
-      } ExtensionType;
+       } ExtensionType;
 
-      struct {
+       struct {
           uint8 nonce[16];
-      } ECHNonce;
+       } ECHNonce;
 
-   nonce  A 16-byte nonce exported from the HPKE encryption context.
-      See Section 7.1 for details about its computation.
+   nonce  A 16-byte nonce exported from the HPKE encryption context, as
+      described in Section 7.1.
 
-   Finally, requirements in Section 7 and Section 8 require
-   implementations to track, alongside each PSK established by a
-   previous connection, whether the connection negotiated this extension
-   with the "ech_accept" response type.  If so, this is referred to as
-   an "ECH PSK".  Otherwise, it is a "non-ECH PSK".  This may be
-   implemented by adding a new field to client and server session
-   states.
+   Per Section 7 and Section 8, implementations are required to track,
+   alongside each PSK established by a previous connection, whether the
+   connection negotiated this extension with the "ech_accept" response
+   type.  If so, this is referred to as an "ECH PSK".  Otherwise, it is
+   a "non-ECH PSK".  This may be implemented by adding a new field to
+   client and server session states.
 
 6.1.  Incorporating Outer Extensions
 
@@ -489,19 +544,20 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    post-quantum algorithms.  In order to reduce the impact of duplicated
    extensions, the client may use the "outer_extensions" extension.
 
-      enum {
+       enum {
           outer_extension(0xff04), (65535)
-      } ExtensionType;
+       } ExtensionType;
 
-      struct {
+       struct {
           ExtensionType outer_extensions<2..254>;
           uint8 hash<32..255>;
-      } OuterExtensions;
+       } OuterExtensions;
 
 
 
 
-Rescorla, et al.        Expires 12 February 2021                [Page 9]
+
+Rescorla, et al.        Expires 14 February 2021               [Page 10]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -514,18 +570,18 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    When sending ClientHello, the client first computes ClientHelloInner,
    including any PSK binders, and then MAY substitute extensions which
    it knows will be duplicated in ClientHelloOuter.  To do so, the
-   client computes a hash H of the entire ClientHelloInner message with
+   client computes a hash of the entire ClientHelloInner message with
    the same hash as for the KDF used to encrypt ClientHelloInner.  Then,
-   the client removes and and replaces extensions from ClientHelloInner
-   with a single "outer_extensions" extension.  The list of
-   outer_extensions include those which were removed from
+   the client removes and replaces extensions from ClientHelloInner with
+   a single "outer_extensions" extension.  The list of
+   "outer_extensions" include those which were removed from
    ClientHelloInner, in the order in which they were removed.  The hash
-   contains the full ClientHelloInner hash H computed above.
+   contains the full ClientHelloInner hash computed above.
 
-   This process is reversed by client-facing servers upon receipt.
-   Specifically, the server replaces the "outer_extensions" with
-   extensions contained in ClientHelloOuter.  The server then computes a
-   hash H' of the reconstructed ClientHelloInner.  If H' does not equal
+   This process is reversed by client-facing server.  Specifically, the
+   server replaces the "outer_extensions" with extensions contained in
+   ClientHelloOuter.  The server then computes a hash of the
+   reconstructed ClientHelloInner.  If the hash does not equal
    OuterExtensions.hash, the server aborts the connection with an
    "illegal_parameter" alert.
 
@@ -539,16 +595,16 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    In order to send an encrypted ClientHello, the client first
    determines if it supports the server's chosen KEM, as identified by
-   ECHConfig.kem_id.  If one is supported, the client MUST select an
-   appropriate HpkeCipherSuite from the list of suites offered by the
+   "ECHConfig.kem_id".  If one is supported, the client MUST select an
+   appropriate "HpkeCipherSuite" from the list of suites offered by the
    server.  If the client does not support the corresponding KEM or is
-   unable to select an appropriate group or HpkeCipherSuite, it SHOULD
-   ignore that ECHConfig value and MAY attempt to use another value
-   provided by the server.  The client MUST NOT send ECH using HPKE
-   algorithms not advertised by the server.
+   unable to select a suitable "HpkeCipherSuite", it SHOULD ignore that
+   "ECHConfig" value and MAY attempt to use another value provided by
+   the server.  The client MUST NOT send ECH using HPKE algorithms not
+   advertised by the server.
 
-   Given a compatible ECHConfig with fields public_key and kem_id,
-   carrying the HpkePublicKey and KEM identifier corresponding to the
+   Given a compatible "ECHConfig" with fields "public_key" and "kem_id",
+   carrying the "HpkePublicKey" and KEM identifier corresponding to the
    server, clients compute an HPKE encryption context as follows:
 
 
@@ -557,21 +613,18 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 10]
+Rescorla, et al.        Expires 14 February 2021               [Page 11]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-   pkR = HPKE.KEM.Unmarshal(ECHConfig.public_key)
-   enc, context = SetupBaseS(pkR, "tls13-ech")
-   ech_nonce_value = context.Export("tls13-ech-nonce", 16)
-   ech_hrr_key = context.Export("tls13-ech-hrr-key", 16)
+       pkR = HPKE.KEM.Unmarshal(ECHConfig.public_key)
+       enc, context = SetupBaseS(pkR, "tls13-ech")
+       ech_nonce_value = context.Export("tls13-ech-nonce", 16)
+       ech_hrr_key = context.Export("tls13-ech-hrr-key", 16)
 
    Note that the HPKE algorithm identifiers are those which match the
-   client's chosen preference from ECHConfig.cipher_suites.  The client
-   MAY replace any large, duplicated extensions in ClientHelloInner with
-   the corresponding "outer_extensions" extension, as described in
-   Section 6.1.
+   client's chosen preference from "ECHConfig.cipher_suites".
 
    The client then generates a ClientHelloInner value.  In addition to
    the normal values, ClientHelloInner MUST also contain:
@@ -593,9 +646,9 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    containing the "encrypted_client_hello" extension with the values as
    indicated above.  In particular,
 
-   *  suite contains the client's chosen HpkeCipherSuite;
+   *  cipher_suite contains the client's chosen HpkeCipherSuite;
 
-   *  record_digest contains the digest of the corresponding ECHConfig
+   *  config_digest contains the digest of the corresponding ECHConfig
       structure;
 
    *  enc contains the encapsulated key as output by SetupBaseS; and
@@ -603,7 +656,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    *  encrypted_ch contains the HPKE encapsulated key (enc) and the
       ClientHelloInner ciphertext (encrypted_ch_inner).
 
-   The client MUST place the value of ECHConfig.public_name in the
+   The client MUST place the value of "ECHConfig.public_name" in the
    ClientHelloOuter "server_name" extension.  The ClientHelloOuter MUST
    NOT contain a "cached_info" extension [RFC7924] with a CachedObject
    entry whose CachedInformationType is "cert", since this indication
@@ -613,7 +666,10 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 11]
+
+
+
+Rescorla, et al.        Expires 14 February 2021               [Page 12]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -669,7 +725,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 12]
+Rescorla, et al.        Expires 14 February 2021               [Page 13]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -725,7 +781,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 13]
+Rescorla, et al.        Expires 14 February 2021               [Page 14]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -781,7 +837,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 14]
+Rescorla, et al.        Expires 14 February 2021               [Page 15]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -837,7 +893,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 15]
+Rescorla, et al.        Expires 14 February 2021               [Page 16]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -853,7 +909,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       but MAY be held constant for successive connections to the same
       server in the same session.
 
-   *  Set the "record_digest" field to a randomly-generated string of
+   *  Set the "config_digest" field to a randomly-generated string of
       hash_length bytes, where hash_length is the length of the hash
       function associated with the chosen HpkeCipherSuite.
 
@@ -886,14 +942,14 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    ClientEncryptedCH.encrypted_ch.  This matching procedure should be
    done using one of the following two checks:
 
-   1.  Compare ClientEncryptedCH.record_digest against cryptographic
+   1.  Compare ClientEncryptedCH.config_digest against cryptographic
        hashes of known ECHConfig and choose the one that matches.
 
 
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 16]
+Rescorla, et al.        Expires 14 February 2021               [Page 17]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -902,7 +958,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
        ECHConfig and choose the one that succeeds.
 
    Some uses of ECH, such as local discovery mode, may omit the
-   ClientEncryptedCH.record_digest since it can be used as a tracking
+   ClientEncryptedCH.config_digest since it can be used as a tracking
    vector.  In such cases, trial decryption should be used for matching
    ClientEncryptedCH to known ECHConfig.  Unless specified by the
    application using (D)TLS or externally configured on both sides,
@@ -925,7 +981,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       plaintext SNI name.  This restriction allows a client to reject
       resumptions in Section 7.3.2.1.
 
-   Note that an unrecognized ClientEncryptedCH.record_digest value may
+   Note that an unrecognized ClientEncryptedCH.config_digest value may
    be a GREASE ECH extension (see Section 7.4), so it is necessary for
    servers to proceed with the connection and rely on the client to
    abort if ECH was required.  In particular, the unrecognized value
@@ -949,7 +1005,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 17]
+Rescorla, et al.        Expires 14 February 2021               [Page 18]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1005,7 +1061,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 18]
+Rescorla, et al.        Expires 14 February 2021               [Page 19]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1061,7 +1117,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 19]
+Rescorla, et al.        Expires 14 February 2021               [Page 20]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1080,7 +1136,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    client-facing servers should use the same ECHConfig for as many hosts
    as possible.  An attacker can distinguish two hosts that have
    different ECHConfig values based on the
-   ClientEncryptedCH.record_digest value.  This also means public
+   ClientEncryptedCH.config_digest value.  This also means public
    information in a TLS handshake is also consistent across hosts.  For
    example, if a client-facing server services many backend origin
    hosts, only one of which supports some cipher suite, it may be
@@ -1117,7 +1173,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 20]
+Rescorla, et al.        Expires 14 February 2021               [Page 21]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1142,12 +1198,12 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    Optional record digests may be useful in scenarios where clients and
    client-facing servers do not want to reveal information about the
    client-facing server in the "encrypted_client_hello" extension.  In
-   such settings, clients send either an empty record_digest or a
-   randomly generated record_digest in the ClientEncryptedCH.  (The
+   such settings, clients send either an empty config_digest or a
+   randomly generated config_digest in the ClientEncryptedCH.  (The
    precise implementation choice for this mechanism is out of scope for
    this document.)  Servers in these settings must perform trial
    decryption since they cannot identify the client's chosen ECH key
-   using the record_digest value.  As a result, support for optional
+   using the config_digest value.  As a result, support for optional
    record digests may exacerbate DoS attacks.  Specifically, an
    adversary may send malicious ClientHello messages, i.e., those which
    will not decrypt with any known ECH key, in order to force wasteful
@@ -1173,7 +1229,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 21]
+Rescorla, et al.        Expires 14 February 2021               [Page 22]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1229,7 +1285,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 22]
+Rescorla, et al.        Expires 14 February 2021               [Page 23]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1285,7 +1341,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 23]
+Rescorla, et al.        Expires 14 February 2021               [Page 24]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1341,7 +1397,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 24]
+Rescorla, et al.        Expires 14 February 2021               [Page 25]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1397,7 +1453,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 25]
+Rescorla, et al.        Expires 14 February 2021               [Page 26]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1453,7 +1509,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 26]
+Rescorla, et al.        Expires 14 February 2021               [Page 27]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1509,7 +1565,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 27]
+Rescorla, et al.        Expires 14 February 2021               [Page 28]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1565,7 +1621,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 28]
+Rescorla, et al.        Expires 14 February 2021               [Page 29]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1621,7 +1677,7 @@ A.1.  TLS-layer
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 29]
+Rescorla, et al.        Expires 14 February 2021               [Page 30]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1677,7 +1733,7 @@ A.2.  Application-layer
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 30]
+Rescorla, et al.        Expires 14 February 2021               [Page 31]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1733,7 +1789,7 @@ Appendix B.  Total Client Hello Encryption
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 31]
+Rescorla, et al.        Expires 14 February 2021               [Page 32]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1789,4 +1845,4 @@ Authors' Addresses
 
 
 
-Rescorla, et al.        Expires 12 February 2021               [Page 32]
+Rescorla, et al.        Expires 14 February 2021               [Page 33]
