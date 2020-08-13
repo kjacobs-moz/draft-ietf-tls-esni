@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-11T13:08:32.907930+00:00",
+  "timestamp": "2020-08-13T19:38:09.999958+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -4992,7 +4992,315 @@
       "labels": [],
       "body": "There are several rationales provided about the need for `ech_nonce`:\r\n\r\n1. This nonce ensures that the server's encrypted Certificate can only be read by the entity which sent this ClientHello.\r\n2. Since servers process either ClientHelloInner or ClientHelloOuter, and ClientHelloInner contains an HPKE-derived nonce, it is not possible for an attacker to \"cut and paste\" the ECH value in a different Client Hello and learn information from ClientHelloInner. This is because the attacker lacks access to the HPKE-derived nonce used to derive the handshake secrets.\r\n3. Client Reaction Attack Mitigation ... The \"ech_nonce\" extension in the inner ClientHello prevents this attack. In particular, since the attacker does not have access to this value, it cannot produce the right transcript and handshake keys needed for encrypting the Certificate message. Thus, the client will fail to decrypt the Certificate and abort the connection.\r\n\r\nThese rationales are all subtly different, and having read them all, I still don't understand why the nonce is necessary, when the server_handshake_traffic_secret already depends on the inner client random, which is not known to the attacker.\r\n\r\nI would appreciate some more explanation on this point.  It also might make sense to move these rationales up into the ech_nonce section, or add forward references to them there.",
       "createdAt": "2020-08-05T02:33:20Z",
-      "updatedAt": "2020-08-05T02:33:20Z",
+      "updatedAt": "2020-08-13T19:12:31Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I agree that the rationale isn't clear from the description. This needs to be cleaned up. However, it does seem to prevent a real attack (see Sec. 10.8.1).",
+          "createdAt": "2020-08-12T22:35:04Z",
+          "updatedAt": "2020-08-12T22:35:04Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@cjpatton As I noted above, the server_handshake_traffic_secret already depends on the inner client random, which is not known to the attacker.  It therefore seems to me that the attacker therefore cannot produce a Certificate message that the client will decrypt, even without the nonce.  If that's true, I don't see how the attack in Sec. 10.8.1 is possible.",
+          "createdAt": "2020-08-13T00:35:54Z",
+          "updatedAt": "2020-08-13T00:35:54Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "What if the inner CH.random is the same as the outer CH.random? This is currently allowed by the spec, i.e., there's no guidance on \"copying\" extensions from the outer CH to the inner.",
+          "createdAt": "2020-08-13T16:03:35Z",
+          "updatedAt": "2020-08-13T16:03:35Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "That's an interesting question that I think the spec should probably address.  I assumed they could not be the same, because they are both required to be random.  If they _can_ be the same, I would suggest making them always the same, and remove the inner one to save 32 bytes and simplify the analysis.",
+          "createdAt": "2020-08-13T16:48:42Z",
+          "updatedAt": "2020-08-13T16:48:42Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "The semantics of copying outer CH extensions into inner CH needs to be clarified: see also https://github.com/tlswg/draft-ietf-tls-esni/issues/262. To my read, the intent is that any extension MAY be copied, bit-by-bit, into the inner CH.",
+          "createdAt": "2020-08-13T17:04:48Z",
+          "updatedAt": "2020-08-13T17:04:48Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "The client random is a fixed field of the ClientHello, not an extension.",
+          "createdAt": "2020-08-13T17:33:52Z",
+          "updatedAt": "2020-08-13T17:33:52Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> If they can be the same, I would suggest making them always the same, and remove the inner one to save 32 bytes and simplify the analysis.\r\n\r\nHmm, I'm not really a fan of this (and bit shaving in general). The idea is to make the inner CH as close to a full CH as possible, so keeping the same encoding makes most sense to me. \r\n\r\nThat said, even if they are random, there may be cases where the attacker can predict the randomness generated. ",
+          "createdAt": "2020-08-13T18:05:45Z",
+          "updatedAt": "2020-08-13T18:05:45Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I think an attacker that can predict a random value generated by the TLS stack has much more exciting avenues of attack here. (E.g. the client's key share is lost.) Though it is a good point that they are slightly different: the ECH nonce is exported from the HPKE context while the client random is simply random. I forget if that ends up being important anywhere.",
+          "createdAt": "2020-08-13T18:08:28Z",
+          "updatedAt": "2020-08-13T18:08:28Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> The client random is a fixed field of the ClientHello, not an extension.\r\n\r\nAh you're right. Thanks!",
+          "createdAt": "2020-08-13T18:12:14Z",
+          "updatedAt": "2020-08-13T18:12:22Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Exactly -- even if an attacker knew the client's key share, random value, etc, it *might* not know the ECH nonce (without access to the sever's private key), depending on the KEM used. (If DHKEM was used, it would know the client's ephemeral private key, so the point is moot.) \r\n\r\nAll that said, we *may* be able to remove it. But I'm hesitant to do so without backing analysis.",
+          "createdAt": "2020-08-13T18:13:01Z",
+          "updatedAt": "2020-08-13T18:13:01Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "> If DHKEM was used, it would know the client's ephemeral private key, so the point is moot.\r\n\r\nI think this is true for any KEM. If your KEM looks more like public key encryption, the attacker would instead know the shared secret the client generated. More generally, if we assume the client is incapable of generating random numbers, the attacker can simply run through the client's implementation of SetupBaseS, replacing all non-determinism with the predicted random number. It will then end up with the same HPKE context.",
+          "createdAt": "2020-08-13T18:16:07Z",
+          "updatedAt": "2020-08-13T18:16:07Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> I think this is true for any KEM. If your KEM looks more like public key encryption, the attacker would instead know the shared secret the client generated. More generally, if we assume the client is incapable of generating random numbers, the attacker can simply run through the client's implementation of SetupBaseS, replacing all non-determinism with the predicted random number. It will then end up with the same HPKE context.\r\n\r\nThat's true! ",
+          "createdAt": "2020-08-13T18:18:48Z",
+          "updatedAt": "2020-08-13T18:18:48Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "RFC 8446 Appendix C.1 says \"Implementations can provide extra security against [broken RNG] attack by using separate CSPRNGs to generate public and private values.\".  If that's the motivation for the nonce, I think the spec should mention it.",
+          "createdAt": "2020-08-13T19:12:31Z",
+          "updatedAt": "2020-08-13T19:12:31Z"
+        }
+      ]
+    },
+    {
+      "number": 260,
+      "id": "MDU6SXNzdWU2NzgwMTAxMDY=",
+      "title": "Need a high-level description of the security goal in the intro",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/260",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "In just a few sentences, let's define the anonymity set and say what it means for connections to end points in this set to be indistignuishable. We might also enumerate non-goals (though we still need consensus on what these are).\r\n",
+      "createdAt": "2020-08-12T22:11:36Z",
+      "updatedAt": "2020-08-12T22:16:33Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 261,
+      "id": "MDU6SXNzdWU2NzgwMTM2ODc=",
+      "title": "Spec assumes HPKE uses HKDF",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/261",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "From Section 6.1:\r\n\r\n```\r\n   When sending ClientHello, the client first computes ClientHelloInner,\r\n   including any PSK binders, and then MAY substitute extensions which\r\n   it knows will be duplicated in ClientHelloOuter.  To do so, the\r\n   client computes a hash H of the entire ClientHelloInner message with\r\n   the same hash as for the KDF used to encrypt ClienHelloInner.  Then,\r\n   the client removes and and replaces extensions from ClientHelloInner\r\n   with a single \"outer_extensions\" extension.  The list of\r\n   outer_extensions include those which were removed from\r\n   ClientHelloInner, in the order in which they were removed.  The hash\r\n   contains the full ClientHelloInner hash H computed above.\r\n```\r\n\r\nThis assumes that the KDF specifies some underlying hash function. From the HPKE spec, it seems like all that's required of the KDF is that it's an \"extract-then-expand\" KDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-4\r\n\r\nIn fact, the currently assigned code points are all for HKDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-7.2\r\n\r\nBut there's no requirement that the KDF always have some underlying hash function. As an alternative to HKDF, one can imagine a dedicated primitive that satisfies the extract-then-expand API but is not constructed from a hash function.",
+      "createdAt": "2020-08-12T22:20:25Z",
+      "updatedAt": "2020-08-13T18:17:41Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Impacted fields:\r\n- ClientEncryptedCH.record_digest\r\n- OuterExtensions.hash",
+          "createdAt": "2020-08-13T16:54:51Z",
+          "updatedAt": "2020-08-13T16:54:51Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "We can probably replace `Hash` with `Extract` and be done with it. ",
+          "createdAt": "2020-08-13T18:03:29Z",
+          "updatedAt": "2020-08-13T18:03:29Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Putting on my theorist hat, I'd say that the extract function is a \"randomness extractor\" and not a collision resistant hash function. We want the latter in this context. From a practical stand point, using the extract function is more hashing than we need.\r\n\r\nI'd suggest doing away with `OuterExtensions.hash` (see #263) and figuring something else out for `ClientEncryptedCH.record_digest`. Could we simply require HKDF be used with HPKE?",
+          "createdAt": "2020-08-13T18:09:59Z",
+          "updatedAt": "2020-08-13T18:09:59Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Sure, but in practice randomness extractors use a collision resistant hash or PRF (CBC) under the hood. \r\n\r\nI don't think we can require HKDF for HPKE. That seems too restrictive. We might just say that ECH requires HKDF-based HPKE ciphersuites, as HKDF is already paramount for TLS 1.3, and then just reference HKDF's hash function. ",
+          "createdAt": "2020-08-13T18:17:41Z",
+          "updatedAt": "2020-08-13T18:17:41Z"
+        }
+      ]
+    },
+    {
+      "number": 262,
+      "id": "MDU6SXNzdWU2NzgwMTcwMTI=",
+      "title": "\"outer_extensions\" mechanism is lossy compression",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/262",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Say we want the outer CH to have extensions a and b. Let's write this as\r\n```\r\n  ClientHelloOuter = [a, b]\r\n```\r\nSay the inner CH should have extensions a, b, c, and d. But b is really big, so we want a shallow copy it. Then we write the compressed inner CH as\r\n```\r\n   ClientHelloInner = [a, c, d, outer_extensions = [ shallow_copy_of_b ]]\r\n```\r\nThe decompressed ClientHelloInner should be `[a, b, c, d]`, but using `outer_extensions` destroys the intended order.\r\n\r\n",
+      "createdAt": "2020-08-12T22:28:26Z",
+      "updatedAt": "2020-08-13T18:21:42Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Extension order in TLS isn't meaningful, so I think that's fine, provided the code producing the inner ClientHello and the code encoding it get to coordinate. (I.e. a client that says \"I don't care about secrecy of `key_share` and will send the same one on both sides\" can probably live with `key_share` being at the end.)\r\n\r\nThere have been cases where extension order has interop impacts due to server bugs. (E.g. the last extension needs to be non-empty to avoid a bug in some old servers.) But those old servers wouldn't see inner ClientHellos anyway.",
+          "createdAt": "2020-08-13T17:53:30Z",
+          "updatedAt": "2020-08-13T17:53:30Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I think maybe a concern is that the client and server wind up using extension lists with different orders, for whatever reasons, thereby yielding different transcripts. Wouldn't that be an issue?",
+          "createdAt": "2020-08-13T18:02:57Z",
+          "updatedAt": "2020-08-13T18:02:57Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Right, hence \"provided the code producing the inner ClientHello and the code encoding it get to coordinate\". If compression is done with inner + outer ClientHello being produced by the same thing, the client can simply take this into account and always put referenced extensions at the end. If it's a proxying picture, where the client does not know it is doing ECH (is that even possible? I suspect the ech_nonce would be an issue), that may not work.",
+          "createdAt": "2020-08-13T18:11:23Z",
+          "updatedAt": "2020-08-13T18:11:43Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Right. I don't expect the latter (proxy case) to be common, though perhaps modifying this to prevent misuse might be useful.",
+          "createdAt": "2020-08-13T18:14:25Z",
+          "updatedAt": "2020-08-13T18:14:25Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "This make me worry about interoperability. For a client and server to speak to eachother they need to adopt the same convention that is not specified anywhere, but only evident when you look at existing implementations. My vote would be to modify compression so that extension order is preserved.",
+          "createdAt": "2020-08-13T18:16:03Z",
+          "updatedAt": "2020-08-13T18:19:45Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "It is certainly necessary that the decompression function produces a deterministic ClientHello, down to what goes into the transcript. I think section 6.1 does that. That's a different criteria from requiring that every possible input ClientHello be efficiently compressible.",
+          "createdAt": "2020-08-13T18:21:41Z",
+          "updatedAt": "2020-08-13T18:21:41Z"
+        }
+      ]
+    },
+    {
+      "number": 263,
+      "id": "MDU6SXNzdWU2Nzg2Mjc5OTk=",
+      "title": "\"outer_extensions\": What's the purpose of the hash?",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/263",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Field `OuterExtensions.hash` is computed as \"digest of the complete ClientHelloInner\" (including presumably, the \"outer_extensions\" extension). I don't understand the analytical value of this hash. Can anyone explain its reasoning?",
+      "createdAt": "2020-08-13T17:50:29Z",
+      "updatedAt": "2020-08-13T17:50:29Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 264,
+      "id": "MDU6SXNzdWU2Nzg2MzUxMzg=",
+      "title": "Handshake-level vs record-level padding",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/264",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "ECH currently uses two different kinds of padding. The encrypted ClientHello is padded with the padding extension, while the server response is padded with TLS 1.3 record layer padding.\r\nhttps://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-07#section-7.1\r\nhttps://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-07#section-7.2\r\n\r\nUsing record-level padding in TLS over TCP is relatively straightforward as it\u2019s ordered. However DTLS and QUIC have their own record layers, with retransmission logic. Properly hiding some length then requires that packet loss and retransmission logic track and retransmit padding as if it were integrated into the byte stream.\r\n\r\nIn the case of QUIC, when a QUIC packet is determined to be lost, it is not retransmitted whole; instead information carried in the frames in lost packets might be sent again in new frames (draft-ietf-quic-transport, section 13.3). That same section states that PADDING frames do not need to be retransmitted. If ECH in QUIC relies on QUIC transport layer padding, that would need to be changed, and implementations would need to track how much adding is associated with CRYPTO frame data for retransmission.\r\n\r\nQUIC additionally needs the padding size communicated across API boundaries between the TLS and QUIC implementations. It\u2019s likely that everyone\u2019s first pass at the API will omit this, only to need to add an extra parameter (API change) later when they implement ECH.\r\n\r\nThis seems a somewhat general issue between padding at reliably- and unreliably-transmitted layers of the stack. HTTP/3 has something analogous (though carried in slightly frames). That draft actually discusses two options for padding and calls out the relation to packet loss:\r\n\r\n> Where HTTP/2 employs PADDING frames and Padding fields in other frames to make a connection more resistant to traffic analysis, HTTP/3 can either rely on transport-layer padding or employ the reserved frame and stream types discussed in Section 7.2.8 and Section 6.2.3. These methods of padding produce different results in terms of the granularity of padding, how padding is arranged in relation to the information that is being protected, whether padding is applied in the case of packet loss, and how an implementation might control padding. Redundant padding could even be counterproductive.\r\n\r\nhttps://quicwg.org/base-drafts/draft-ietf-quic-http.html#name-padding-and-traffic-analysi\r\n\r\nShould we match that precedent and move the padding into the handshake itself? That would make it apply to DTLS and QUIC transparently. If we do, a couple possibilities to start with:\r\n\r\n* Say that ECH implementations must tolerate unsolicited padding extensions and inject those into various messages. This is a goofy around messages without extensions (CertificateVerify), or messages with multiple extension blocks (Certificate), but as long as there is an extension block _somewhere_ in each padded flight, it's probably possible to fudge it.\r\n* Say that ECH adds a new kind of Padding handshake message, which the sender can incorporate into the handshake as needed, and the receiver ignores.\r\n\r\nIf we leave ECH as-is, it seems to me QUIC (both spec and implementations) needs some changes to track padding across retransmission.",
+      "createdAt": "2020-08-13T18:03:12Z",
+      "updatedAt": "2020-08-13T18:25:20Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "(2) seems simplest and most useful to me. The receiver path is trivial, and avoiding per-message semantics for adding padding (or not, if the extension isn't supported) seems easier. (This would also let clients move inner CH padding from an extension to a message, which might simplify padding calculations in the case where binders are used? That is, it can pad a fully-formed CH, rather than only part of a CH.)",
+          "createdAt": "2020-08-13T18:25:20Z",
+          "updatedAt": "2020-08-13T18:25:20Z"
+        }
+      ]
+    },
+    {
+      "number": 265,
+      "id": "MDU6SXNzdWU2Nzg2NDk4ODk=",
+      "title": "\"outer_extensions\": Guidance on what to compress",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/265",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "In Section 6.1:\r\n\r\n> Clients SHOULD only use this mechanism for extensions which are large. All other extensions SHOULD appear in both ClientHelloInner and ClientHelloOuter even if they have identical values. \r\n\r\nif I were implementing this extension, I think the simplest thing would be to compress all copied extensions by default:\r\n1. it's not computationally intensive;\r\n1. it minimizes bandwidth overhead; and\r\n1. it's simpler for future \"big\" extensions, since no code changes would be needed here.\r\n\r\nI suggest removing this guidance.",
+      "createdAt": "2020-08-13T18:29:51Z",
+      "updatedAt": "2020-08-13T18:29:51Z",
+      "closedAt": null,
+      "comments": []
+    },
+    {
+      "number": 266,
+      "id": "MDU6SXNzdWU2Nzg2NTQ0NjM=",
+      "title": "Security considerations: SNI leakage vectors",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/266",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 7.1 provides a bit of guidance on how ECH might interact with other extensions:\r\n\r\n> The client MUST place the value of ECHConfig.public_name in the ClientHelloOuter\r\n\"server_name\" extension. The ClientHelloOuter MUST NOT contain a \"cached_info\"\r\nextension {{!RFC7924}} with a CachedObject entry whose CachedInformationType is\r\n\"cert\", since this indication would divulge the true server name. The remaining\r\ncontents of the ClientHelloOuter MAY be identical to those in ClientHelloInner\r\nbut MAY also differ.\r\n\r\nI think it's worth expanding on this in \"Security Considerations\". There may be other ways that private CH extensions get leaked, now or in the future.",
+      "createdAt": "2020-08-13T18:38:13Z",
+      "updatedAt": "2020-08-13T19:13:22Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Now that we've switched to encrypting an entire ClientHello, I think the text wants to say something else anyway: if you want ECH + cached info, you simply include the cached_info extension in the ClientHelloInner, not the ClientHelloOuter. There wouldn't be much point in sending a true name cached_info in ClientHelloOuter since the true server would ignore it. Sending a public name cached_info in ClientHelloOuter is also plausible and also needn't be forbidden (it reveals information about the public name, which is public). It's also probably not that useful since it's just a recovery mechanism, but maybe to avoid sticking out, for clients that normally send it?\r\n\r\nMore generally, anything dependent on the inner name goes in ClientHelloInner and not ClientHelloOuter.",
+          "createdAt": "2020-08-13T19:13:21Z",
+          "updatedAt": "2020-08-13T19:13:21Z"
+        }
+      ]
+    },
+    {
+      "number": 267,
+      "id": "MDU6SXNzdWU2Nzg2NTgwNTQ=",
+      "title": "\"ech_accept\" response type undefined.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/267",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 6: \r\n\r\n> Finally, requirements in {{client-behavior}} and {{server-behavior}} require\r\nimplementations to track, alongside each PSK established by a previous\r\nconnection, whether the connection negotiated this extension with the\r\n\"ech_accept\" response type. If so, this is referred to as an \"ECH PSK\".\r\nOtherwise, it is a \"non-ECH PSK\". This may be implemented by adding a new field\r\nto client and server session states.\r\n\r\n\"ech_accept\" is not defined anywhere.\r\n",
+      "createdAt": "2020-08-13T18:44:56Z",
+      "updatedAt": "2020-08-13T18:44:56Z",
       "closedAt": null,
       "comments": []
     }
@@ -17367,26 +17675,1606 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NDY2MDkzMzk1",
       "title": "Adopt QUIC linter, and fix some issues flagged.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/257",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "chris-wood",
       "authorAssociation": "COLLABORATOR",
       "assignees": [],
       "labels": [],
       "body": "Thanks, @martinthomson!",
       "createdAt": "2020-08-11T13:08:05Z",
-      "updatedAt": "2020-08-11T13:08:05Z",
+      "updatedAt": "2020-08-11T13:08:59Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "f182eae1482934f7dfdc4846ff78d2bdcf610b8e",
       "headRepository": "tlswg/draft-ietf-tls-esni",
       "headRefName": "caw/adopt-quic-linter",
       "headRefOid": "d134dac10ae79ecd680267a95cea7f123e8d6d14",
-      "closedAt": null,
+      "closedAt": "2020-08-11T13:08:59Z",
+      "mergedAt": "2020-08-11T13:08:59Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "2d31c5f0a63c4dc238cdfc9d51089ae4a647b75d"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 258,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY2MTE5OTgw",
+      "title": "Fix superfluous padding edge cases.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/258",
+      "state": "CLOSED",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Thanks, @bemasc, for raising this! ",
+      "createdAt": "2020-08-11T13:53:49Z",
+      "updatedAt": "2020-08-11T14:12:00Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "2d31c5f0a63c4dc238cdfc9d51089ae4a647b75d",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/fix-padding",
+      "headRefOid": "456b6496dfe1d5f74a2d4a272e53f98c3ecf9e1f",
+      "closedAt": "2020-08-11T14:12:00Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
+      "comments": [
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Thanks for the improvement.  Note that this formula still has no length ambiguity when L == 31 and D == 32.  It's not clear to me whether that's consistent with the design goal.",
+          "createdAt": "2020-08-11T13:59:17Z",
+          "updatedAt": "2020-08-11T13:59:17Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Closing.",
+          "createdAt": "2020-08-11T14:12:00Z",
+          "updatedAt": "2020-08-11T14:12:00Z"
+        }
+      ],
       "reviews": []
+    },
+    {
+      "number": 259,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY2MjYyNjIw",
+      "title": "WIP: Editorial changes",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/259",
+      "state": "MERGED",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The PR contains several \"TODOs\" that must be resolved for merging this.",
+      "createdAt": "2020-08-11T17:57:49Z",
+      "updatedAt": "2020-08-13T19:37:30Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "2d31c5f0a63c4dc238cdfc9d51089ae4a647b75d",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "edit",
+      "headRefOid": "c9a3ebdd7e0eb458a2eaf04452328a2587cea744",
+      "closedAt": "2020-08-13T19:37:30Z",
+      "mergedAt": "2020-08-13T19:37:30Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d"
+      },
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Three TODOs remain.\r\nLet me know before you merge, I'd like to roll these into a single commit.",
+          "createdAt": "2020-08-13T18:47:01Z",
+          "updatedAt": "2020-08-13T18:47:01Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2Mjg3MDQx",
+          "commit": {
+            "abbreviatedOid": "fb053ab"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:22:43Z",
+          "updatedAt": "2020-08-12T21:42:31Z",
+          "comments": [
+            {
+              "originalPosition": 5,
+              "body": "\u2764\ufe0f ",
+              "createdAt": "2020-08-12T21:22:43Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 4,
+              "body": "Agreed. Let's make an issue for this (and remove the TODO)!",
+              "createdAt": "2020-08-12T21:23:07Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 204,
+              "body": "`enc` matches HPKE, so I think we should keep it as is.",
+              "createdAt": "2020-08-12T21:26:32Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 33,
+              "body": "I'm not sure this level of detail is needed here. Perhaps we can simply say, \"The client determines whether ECH was accepted or rejected and proceeds accordingly. The details for each procedure are described in {{section}}.\"",
+              "createdAt": "2020-08-12T21:27:24Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 39,
+              "body": "I don't think this is needed (here).",
+              "createdAt": "2020-08-12T21:27:46Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 79,
+              "body": "That's true. We can rewrite this as a paragraph, e.g., saying \"The remaining contents of the `ECHConfig` structure are an opaque byte string...\"",
+              "createdAt": "2020-08-12T21:29:47Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 118,
+              "body": "I think we should revert this change. The padding scheme specifically applies to the ClientHelloInner.",
+              "createdAt": "2020-08-12T21:30:44Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 159,
+              "body": "I don't think this is necessary. The version field speaks for itself, and this section doesn't add much. Can we remove this?",
+              "createdAt": "2020-08-12T21:32:28Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 188,
+              "body": "That's a good idea, yep!",
+              "createdAt": "2020-08-12T21:33:24Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 197,
+              "body": "How about `config_digest`?",
+              "createdAt": "2020-08-12T21:33:56Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 216,
+              "body": "```suggestion\r\nWhen the client-facing server accepts ECH, it does not send this extension. When it\r\n```",
+              "createdAt": "2020-08-12T21:34:58Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 235,
+              "body": "```suggestion\r\nThis document also defines the \"ech_required\" alert, which clients MUST send\r\n```",
+              "createdAt": "2020-08-12T21:35:45Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 239,
+              "body": "\ud83d\udc4d ",
+              "createdAt": "2020-08-12T21:35:54Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 250,
+              "body": "Can we remove this TODO and make it an issue?",
+              "createdAt": "2020-08-12T21:36:23Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 278,
+              "body": "Good point. We should probably shuffle things around.",
+              "createdAt": "2020-08-12T21:36:58Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 276,
+              "body": "It probably doesn't. Can you find a better home for it?",
+              "createdAt": "2020-08-12T21:37:34Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 300,
+              "body": "Yes -- each KDF has an associated hash function.",
+              "createdAt": "2020-08-12T21:37:49Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 313,
+              "body": "I'm not sure this is correct -- let's remove this and track it in a separate issue.",
+              "createdAt": "2020-08-12T21:39:58Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 319,
+              "body": "It makes sure that the outer extension contents are not modified.",
+              "createdAt": "2020-08-12T21:40:12Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            },
+            {
+              "originalPosition": 325,
+              "body": "By redundant do you mean identical?",
+              "createdAt": "2020-08-12T21:40:52Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAwMjIz",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:47:02Z",
+          "updatedAt": "2020-08-12T21:47:02Z",
+          "comments": [
+            {
+              "originalPosition": 204,
+              "body": "Ack, removing TODO",
+              "createdAt": "2020-08-12T21:47:02Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAxMzIw",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:49:09Z",
+          "updatedAt": "2020-08-12T21:49:09Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "The high-level description is incomplete, since it doesn't talk about how the client processes the server's response. I think it's good to be complete, even if high-level.",
+              "createdAt": "2020-08-12T21:49:09Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAyNjk2",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:51:57Z",
+          "updatedAt": "2020-08-12T21:51:58Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "As written, the \"ech_nonce\" section comes out of nowhere, since it's purpose isn't articulated until \"security considerations\". My view is that any code point defined in the spec needs to be mentioned in the overview. In fact, I would include \"outer_extensions\" here, too.",
+              "createdAt": "2020-08-12T21:51:58Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAzMDE5",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:52:40Z",
+          "updatedAt": "2020-08-12T21:52:40Z",
+          "comments": [
+            {
+              "originalPosition": 276,
+              "body": "Not until I understand the PSK story. I'll leave this unresolved for now.",
+              "createdAt": "2020-08-12T21:52:40Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAzMzcx",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:53:22Z",
+          "updatedAt": "2020-08-12T21:53:23Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "Sure, but this isn't the right place for it. It's a tiny part of the protocol. We can describe inline below when it arises. ",
+              "createdAt": "2020-08-12T21:53:23Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzAzNjQ3",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:53:54Z",
+          "updatedAt": "2020-08-12T21:53:54Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "What I proposed was high level, I think. We should avoid redundancies in the spec where possible. ",
+              "createdAt": "2020-08-12T21:53:54Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzA2MTAy",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T21:58:59Z",
+          "updatedAt": "2020-08-12T21:59:00Z",
+          "comments": [
+            {
+              "originalPosition": 300,
+              "body": "From the spec, it seems like all that's required of the KDF is that it's an \"extract-then-expand\" KDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-4\r\n\r\nIn fact, the currently assigned code points are all for HKDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-7.2\r\n\r\nBut AFAICT there's no requirement that the KDF always have some underlying hash function. As an alternative to HKDF, one can imagine a dedicated primitive that satisfies the extract-then-expand API but is not constructed from a hash function.\r\n\r\nSorry if this is nit-picky :) ",
+              "createdAt": "2020-08-12T21:58:59Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzA3MTU2",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:01:03Z",
+          "updatedAt": "2020-08-12T22:01:03Z",
+          "comments": [
+            {
+              "originalPosition": 300,
+              "body": "I see your point. Let's replace this with `Extract` instead of `Hash` and call it a day.",
+              "createdAt": "2020-08-12T22:01:03Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzA3NTg0",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:01:50Z",
+          "updatedAt": "2020-08-12T22:01:51Z",
+          "comments": [
+            {
+              "originalPosition": 319,
+              "body": "Is there a specific attack this prevents?",
+              "createdAt": "2020-08-12T22:01:51Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzA4NDQ4",
+          "commit": {
+            "abbreviatedOid": "c0cd660"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:03:33Z",
+          "updatedAt": "2020-08-12T22:03:34Z",
+          "comments": [
+            {
+              "originalPosition": 325,
+              "body": "I mean that I would shallow-copy any extension that appears in both the inner and outer CH. The computational overhead is low, it reduces the size of the outer CH, and it seems simpler than shallow-copying select things. (Suppose someone else invents another big extension after ECH is implemented.)",
+              "createdAt": "2020-08-12T22:03:34Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzEwMDA2",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:06:55Z",
+          "updatedAt": "2020-08-12T22:06:55Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "I think of it as a gentle introduction to the protocol flow, which, IMO, aids understanding later on. I think the slight redundancy is worth it. If you don't think it is, then I'll revert this.",
+              "createdAt": "2020-08-12T22:06:55Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzEwMzMy",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:07:40Z",
+          "updatedAt": "2020-08-12T22:07:41Z",
+          "comments": [
+            {
+              "originalPosition": 300,
+              "body": "Well, that would change the protocol. Better to make it an issue?",
+              "createdAt": "2020-08-12T22:07:40Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzExNDA3",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:10:06Z",
+          "updatedAt": "2020-08-12T22:10:07Z",
+          "comments": [
+            {
+              "originalPosition": 300,
+              "body": "Yep!",
+              "createdAt": "2020-08-12T22:10:07Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzExNjcw",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:10:36Z",
+          "updatedAt": "2020-08-12T22:10:37Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "Let's flush it out first and then we can decide if it's too deep? I commented on WIP text.",
+              "createdAt": "2020-08-12T22:10:36Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzEyNzY0",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:12:54Z",
+          "updatedAt": "2020-08-12T22:12:54Z",
+          "comments": [
+            {
+              "originalPosition": 4,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/260",
+              "createdAt": "2020-08-12T22:12:54Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzEzNzY5",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:14:57Z",
+          "updatedAt": "2020-08-12T22:14:57Z",
+          "comments": [
+            {
+              "originalPosition": 39,
+              "body": "Ack, moving TODO to section on ech_nonce.",
+              "createdAt": "2020-08-12T22:14:57Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzE2NDEw",
+          "commit": {
+            "abbreviatedOid": "496800c"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:20:45Z",
+          "updatedAt": "2020-08-12T22:20:45Z",
+          "comments": [
+            {
+              "originalPosition": 300,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/261",
+              "createdAt": "2020-08-12T22:20:45Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzIwODQy",
+          "commit": {
+            "abbreviatedOid": "78254d3"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:30:29Z",
+          "updatedAt": "2020-08-12T22:30:29Z",
+          "comments": [
+            {
+              "originalPosition": 313,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/262",
+              "createdAt": "2020-08-12T22:30:29Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzIyMTE2",
+          "commit": {
+            "abbreviatedOid": "6aed3e4"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T22:33:23Z",
+          "updatedAt": "2020-08-12T22:33:23Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "Sounds good, I don't see your comment though.",
+              "createdAt": "2020-08-12T22:33:23Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2MzQ0NDQ0",
+          "commit": {
+            "abbreviatedOid": "6aed3e4"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-12T23:32:30Z",
+          "updatedAt": "2020-08-12T23:32:30Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "It's the first comment in this thread :) ",
+              "createdAt": "2020-08-12T23:32:30Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTMwNjQ2",
+          "commit": {
+            "abbreviatedOid": "6aed3e4"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:35:53Z",
+          "updatedAt": "2020-08-13T16:35:54Z",
+          "comments": [
+            {
+              "originalPosition": 33,
+              "body": "Applied your suggested change.",
+              "createdAt": "2020-08-13T16:35:53Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTMyNTQw",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:38:30Z",
+          "updatedAt": "2020-08-13T16:38:31Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "Hmmm, I'm curious though: shouldn't this field have a label?\r\nhttps://tools.ietf.org/html/rfc8446#section-3.8",
+              "createdAt": "2020-08-13T16:38:31Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTMzNTAx",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:39:44Z",
+          "updatedAt": "2020-08-13T16:39:44Z",
+          "comments": [
+            {
+              "originalPosition": 118,
+              "body": "Reverted.",
+              "createdAt": "2020-08-13T16:39:44Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTM3MTIy",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:44:23Z",
+          "updatedAt": "2020-08-13T16:44:24Z",
+          "comments": [
+            {
+              "originalPosition": 159,
+              "body": "Yes, I'll revert this. However, it seems technically incorrect to me: using RFC 8446 as the authoritative standard, the `select` block is only defined for enumerated types. This might be splitting hairs though ... I'm not sure how strict RFCs are about this.",
+              "createdAt": "2020-08-13T16:44:23Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTM5NTEw",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:47:39Z",
+          "updatedAt": "2020-08-13T16:47:40Z",
+          "comments": [
+            {
+              "originalPosition": 159,
+              "body": "Reverted.",
+              "createdAt": "2020-08-13T16:47:40Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTQxNTQ2",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:50:22Z",
+          "updatedAt": "2020-08-13T16:50:22Z",
+          "comments": [
+            {
+              "originalPosition": 188,
+              "body": "Done.",
+              "createdAt": "2020-08-13T16:50:22Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTQ2NzE0",
+          "commit": {
+            "abbreviatedOid": "1fc6a35"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T16:55:29Z",
+          "updatedAt": "2020-08-13T16:55:29Z",
+          "comments": [
+            {
+              "originalPosition": 197,
+              "body": "I like it. Changed.",
+              "createdAt": "2020-08-13T16:55:29Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTY5OTgz",
+          "commit": {
+            "abbreviatedOid": "ec44304"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:10:01Z",
+          "updatedAt": "2020-08-13T17:10:02Z",
+          "comments": [
+            {
+              "originalPosition": 239,
+              "body": "Done.",
+              "createdAt": "2020-08-13T17:10:01Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTcwNTg2",
+          "commit": {
+            "abbreviatedOid": "ec44304"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:10:54Z",
+          "updatedAt": "2020-08-13T17:10:55Z",
+          "comments": [
+            {
+              "originalPosition": 250,
+              "body": "This is addressed by https://github.com/tlswg/draft-ietf-tls-esni/issues/253. But I think it might be worth resolving this issue as part of this PR. Or should we wait?",
+              "createdAt": "2020-08-13T17:10:54Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTc1MDEz",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:17:03Z",
+          "updatedAt": "2020-08-13T17:17:03Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "It's a union, basically, whose value depends on the type. I don't know what would be the desired label, so I'd be fine with the current text or what's proposed above. ",
+              "createdAt": "2020-08-13T17:17:03Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTc1MTUw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:17:15Z",
+          "updatedAt": "2020-08-13T17:17:16Z",
+          "comments": [
+            {
+              "originalPosition": 250,
+              "body": "Let's wait.",
+              "createdAt": "2020-08-13T17:17:15Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTc1Njgw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:18:00Z",
+          "updatedAt": "2020-08-13T17:18:00Z",
+          "comments": [
+            {
+              "originalPosition": 276,
+              "body": "Let's remove the TODO then. ",
+              "createdAt": "2020-08-13T17:18:00Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTc2MTAw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:18:31Z",
+          "updatedAt": "2020-08-13T17:18:32Z",
+          "comments": [
+            {
+              "originalPosition": 278,
+              "body": "Let's either remove the TODO and file an issue, or address this here.",
+              "createdAt": "2020-08-13T17:18:31Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTc5NzE5",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:23:33Z",
+          "updatedAt": "2020-08-13T17:23:33Z",
+          "comments": [
+            {
+              "originalPosition": 319,
+              "body": "I don't think so. We didn't have analyze this case (yet), so the safe thing was just hash to prevent changes. On reflection, any change in the outer extension values would change the transcript if the inner CH was selected, so maybe it's not needed? This is worth an issue.",
+              "createdAt": "2020-08-13T17:23:33Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgwNDI4",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:24:31Z",
+          "updatedAt": "2020-08-13T17:24:31Z",
+          "comments": [
+            {
+              "originalPosition": 325,
+              "body": "Right, identical. This would be a change, so let's move it to an issue.",
+              "createdAt": "2020-08-13T17:24:31Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgxNDMw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:25:54Z",
+          "updatedAt": "2020-08-13T17:25:54Z",
+          "comments": [
+            {
+              "originalPosition": 355,
+              "body": "I'm not sure I understand the question here. I don't think the text suggests that the group is part of the ciphersuite. We can probably s/\"an appropriate group or\"/\"a\"",
+              "createdAt": "2020-08-13T17:25:54Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgyMTEw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:26:50Z",
+          "updatedAt": "2020-08-13T17:26:50Z",
+          "comments": [
+            {
+              "originalPosition": 406,
+              "body": "This specifies how the parameters are populated, which is different from their definitions above. Let's keep it for now.",
+              "createdAt": "2020-08-13T17:26:50Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgyNDgy",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:27:19Z",
+          "updatedAt": "2020-08-13T17:27:20Z",
+          "comments": [
+            {
+              "originalPosition": 410,
+              "body": "It means the outer CH SNI value contains \"ECHConfig.public_name\".",
+              "createdAt": "2020-08-13T17:27:19Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgyODky",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:27:52Z",
+          "updatedAt": "2020-08-13T17:27:52Z",
+          "comments": [
+            {
+              "originalPosition": 416,
+              "body": "That seems reasonable. Let's file an issue to expand on those details, and remove this TODO.",
+              "createdAt": "2020-08-13T17:27:52Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTgzNTI4",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:28:39Z",
+          "updatedAt": "2020-08-13T17:28:40Z",
+          "comments": [
+            {
+              "originalPosition": 424,
+              "body": "It's a RECOMMENDED padding scheme. What's the confusion?",
+              "createdAt": "2020-08-13T17:28:40Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTg0Mjcy",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:29:42Z",
+          "updatedAt": "2020-08-13T17:29:43Z",
+          "comments": [
+            {
+              "originalPosition": 435,
+              "body": "Again, this is a RECOMMENDED policy. Clients could alternatively pad their inner CH to 1024B, or something. Padding is needed to hide size metadata. It doesn't affect the protocol mechanics.",
+              "createdAt": "2020-08-13T17:29:43Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTg0NTcy",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "Left more comments for consideration. Nice edits!",
+          "createdAt": "2020-08-13T17:30:05Z",
+          "updatedAt": "2020-08-13T17:30:05Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTkxMzcw",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:39:27Z",
+          "updatedAt": "2020-08-13T17:39:28Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "What I don't like about your proposal is that the `length` field gives the length of a nameless field. I think `content` would be a reasonable label.",
+              "createdAt": "2020-08-13T17:39:28Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTkyMjEy",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:40:36Z",
+          "updatedAt": "2020-08-13T17:40:37Z",
+          "comments": [
+            {
+              "originalPosition": 250,
+              "body": "Ack, removing TODO.",
+              "createdAt": "2020-08-13T17:40:37Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTk0MjA1",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:43:20Z",
+          "updatedAt": "2020-08-13T17:43:20Z",
+          "comments": [
+            {
+              "originalPosition": 278,
+              "body": "Actually, this is the *only* place in the document where \"ech_accept\" appears. This needs to be defined.",
+              "createdAt": "2020-08-13T17:43:20Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTk5MDcx",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:50:18Z",
+          "updatedAt": "2020-08-13T17:50:18Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "I see little difference between that and `contents`, so, let's just keep the current text?",
+              "createdAt": "2020-08-13T17:50:18Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY2OTk5NTc5",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:51:01Z",
+          "updatedAt": "2020-08-13T17:51:01Z",
+          "comments": [
+            {
+              "originalPosition": 319,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/263",
+              "createdAt": "2020-08-13T17:51:01Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDAwMzU5",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:52:06Z",
+          "updatedAt": "2020-08-13T17:52:06Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "Oh, \"contents\" is fine. The suggested change is to give the variant a label.",
+              "createdAt": "2020-08-13T17:52:06Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDAxNTIz",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:53:45Z",
+          "updatedAt": "2020-08-13T17:53:45Z",
+          "comments": [
+            {
+              "originalPosition": 276,
+              "body": "Done.",
+              "createdAt": "2020-08-13T17:53:45Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDAyNzgx",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:55:27Z",
+          "updatedAt": "2020-08-13T17:55:28Z",
+          "comments": [
+            {
+              "originalPosition": 355,
+              "body": "That works for me.\r\nDone.",
+              "createdAt": "2020-08-13T17:55:28Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDAzNDE2",
+          "commit": {
+            "abbreviatedOid": "b3e54ca"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T17:56:16Z",
+          "updatedAt": "2020-08-13T17:56:17Z",
+          "comments": [
+            {
+              "originalPosition": 406,
+              "body": "Ack, removing TODO.",
+              "createdAt": "2020-08-13T17:56:16Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDIzMDk2",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:23:45Z",
+          "updatedAt": "2020-08-13T18:23:45Z",
+          "comments": [
+            {
+              "originalPosition": 79,
+              "body": "Hmm, I'm not sure what to here. I'm resolving this and leaving the text as is.",
+              "createdAt": "2020-08-13T18:23:45Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDI0NTA0",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:25:49Z",
+          "updatedAt": "2020-08-13T18:25:49Z",
+          "comments": [
+            {
+              "originalPosition": 278,
+              "body": "Is this an issue, or shall we define the alert here? I'm not sure how to do this.",
+              "createdAt": "2020-08-13T18:25:49Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDI2ODUw",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:29:13Z",
+          "updatedAt": "2020-08-13T18:29:13Z",
+          "comments": [
+            {
+              "originalPosition": 278,
+              "body": "Let's just make it an issue. It'll be a small change.",
+              "createdAt": "2020-08-13T18:29:13Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDI3NTU4",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:30:14Z",
+          "updatedAt": "2020-08-13T18:30:15Z",
+          "comments": [
+            {
+              "originalPosition": 325,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/265.",
+              "createdAt": "2020-08-13T18:30:15Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDMwMDY4",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:33:55Z",
+          "updatedAt": "2020-08-13T18:33:56Z",
+          "comments": [
+            {
+              "originalPosition": 410,
+              "body": "Ack, resolving.",
+              "createdAt": "2020-08-13T18:33:56Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDMzNDIy",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:38:56Z",
+          "updatedAt": "2020-08-13T18:38:57Z",
+          "comments": [
+            {
+              "originalPosition": 416,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/266",
+              "createdAt": "2020-08-13T18:38:56Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDMzNjU5",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:39:18Z",
+          "updatedAt": "2020-08-13T18:39:19Z",
+          "comments": [
+            {
+              "originalPosition": 424,
+              "body": "I'll resolve this TOOD for now.",
+              "createdAt": "2020-08-13T18:39:18Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDM0MTUx",
+          "commit": {
+            "abbreviatedOid": "114e2b7"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:40:02Z",
+          "updatedAt": "2020-08-13T18:40:03Z",
+          "comments": [
+            {
+              "originalPosition": 435,
+              "body": "Resolving for now.",
+              "createdAt": "2020-08-13T18:40:02Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDM3NjAw",
+          "commit": {
+            "abbreviatedOid": "4c9319b"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:45:14Z",
+          "updatedAt": "2020-08-13T18:45:15Z",
+          "comments": [
+            {
+              "originalPosition": 278,
+              "body": "Done. https://github.com/tlswg/draft-ietf-tls-esni/issues/267",
+              "createdAt": "2020-08-13T18:45:14Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDQwMTAx",
+          "commit": {
+            "abbreviatedOid": "8a92f4e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:49:07Z",
+          "updatedAt": "2020-08-13T18:49:07Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "This is already described in the section you reference, so let's remove this TODO.",
+              "createdAt": "2020-08-13T18:49:07Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDQwMjMx",
+          "commit": {
+            "abbreviatedOid": "8a92f4e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:49:20Z",
+          "updatedAt": "2020-08-13T18:49:21Z",
+          "comments": [
+            {
+              "originalPosition": 26,
+              "body": "```suggestion\r\n{{client-behavior}} for details.)\r\n```",
+              "createdAt": "2020-08-13T18:49:20Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDQxODMz",
+          "commit": {
+            "abbreviatedOid": "8a92f4e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:51:41Z",
+          "updatedAt": "2020-08-13T18:51:41Z",
+          "comments": [
+            {
+              "originalPosition": 362,
+              "body": "That seems reasonable -- thanks!",
+              "createdAt": "2020-08-13T18:51:41Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDQyNDQy",
+          "commit": {
+            "abbreviatedOid": "8a92f4e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:52:33Z",
+          "updatedAt": "2020-08-13T18:52:33Z",
+          "comments": [
+            {
+              "originalPosition": 20,
+              "body": "Done.",
+              "createdAt": "2020-08-13T18:52:33Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDQ1MjMy",
+          "commit": {
+            "abbreviatedOid": "d67c284"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T18:54:41Z",
+          "updatedAt": "2020-08-13T18:54:41Z",
+          "comments": [
+            {
+              "originalPosition": 362,
+              "body": "Done.",
+              "createdAt": "2020-08-13T18:54:41Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDUxNjk1",
+          "commit": {
+            "abbreviatedOid": "4d7f789"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T19:04:23Z",
+          "updatedAt": "2020-08-13T19:04:23Z",
+          "comments": [
+            {
+              "originalPosition": 217,
+              "body": "This is meant to be clarifying, not a spec change. The \"ech_required\" alert MUST be sent in this case, correct?",
+              "createdAt": "2020-08-13T19:04:23Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDUyOTk3",
+          "commit": {
+            "abbreviatedOid": "4d7f789"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T19:06:20Z",
+          "updatedAt": "2020-08-13T19:06:20Z",
+          "comments": [
+            {
+              "originalPosition": 26,
+              "body": "Oops, missed this. Shall I make this change?",
+              "createdAt": "2020-08-13T19:06:20Z",
+              "updatedAt": "2020-08-13T19:34:26Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDcxOTQ3",
+          "commit": {
+            "abbreviatedOid": "c9a3ebd"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-13T19:35:27Z",
+          "updatedAt": "2020-08-13T19:35:27Z",
+          "comments": [
+            {
+              "originalPosition": 217,
+              "body": "\ud83d\udc4d yep!",
+              "createdAt": "2020-08-13T19:35:27Z",
+              "updatedAt": "2020-08-13T19:35:27Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY3MDcyMDky",
+          "commit": {
+            "abbreviatedOid": "c9a3ebd"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "Thanks for these editorial cleanups!",
+          "createdAt": "2020-08-13T19:35:42Z",
+          "updatedAt": "2020-08-13T19:35:42Z",
+          "comments": []
+        }
+      ]
     }
   ]
 }
