@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-13T19:38:09.999958+00:00",
+  "timestamp": "2020-08-14T16:39:02.590420+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -5161,7 +5161,7 @@
       "labels": [],
       "body": "Say we want the outer CH to have extensions a and b. Let's write this as\r\n```\r\n  ClientHelloOuter = [a, b]\r\n```\r\nSay the inner CH should have extensions a, b, c, and d. But b is really big, so we want a shallow copy it. Then we write the compressed inner CH as\r\n```\r\n   ClientHelloInner = [a, c, d, outer_extensions = [ shallow_copy_of_b ]]\r\n```\r\nThe decompressed ClientHelloInner should be `[a, b, c, d]`, but using `outer_extensions` destroys the intended order.\r\n\r\n",
       "createdAt": "2020-08-12T22:28:26Z",
-      "updatedAt": "2020-08-13T18:21:42Z",
+      "updatedAt": "2020-08-13T22:00:47Z",
       "closedAt": null,
       "comments": [
         {
@@ -5205,6 +5205,48 @@
           "body": "It is certainly necessary that the decompression function produces a deterministic ClientHello, down to what goes into the transcript. I think section 6.1 does that. That's a different criteria from requiring that every possible input ClientHello be efficiently compressible.",
           "createdAt": "2020-08-13T18:21:41Z",
           "updatedAt": "2020-08-13T18:21:41Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I don't compare about it being \"efficiently\" compressible, but I see your point about the transcript being the same. Just to clarify, my concern is in Section 6.1: \r\n\r\n> Then,\r\n   the client removes and and replaces extensions from ClientHelloInner\r\n   with a single \"outer_extensions\" extension.  The list of\r\n   outer_extensions include those which were removed from\r\n   ClientHelloInner, in the order in which they were removed.\r\n\r\nI interpret this as the following procedure:\r\n```python\r\n   outer_extensions = OuterExtensions()\r\n   for extension in client_hello_inner.extensions:\r\n      if extension in client_hello_outer.extensions and too_big(extension.get_payload()):\r\n          outer_extensions.append(extension.get_type())\r\n          client_hello_inner.remove(extension)\r\n   client_hello_inner.extensions.append(outer_extensions)\r\n```\r\nIs it clear what I mean here? Do we agree that, in general, this procedure doesn't preserve the order of extensions?\r\n\r\nMy concern had to do with servers being ossified around the order of extensions. If this isn't a problem, then I guess we're good here. It's worth flagging this, however (from RFC 8446): \r\n\r\n>    When multiple extensions of different types are present, the\r\n   extensions MAY appear in any order, with the exception of\r\n   \"pre_shared_key\" (Section 4.2.11) which MUST be the last extension in\r\n   the ClientHello (but can appear anywhere in the ServerHello\r\n   extensions block).\r\n\r\nAn order-preserving alternative would be something like this:\r\n```python\r\n   # compress\r\n   for extension in client_hello_inner.extensions:\r\n      if extension in client_hello_outer.extensions and too_big(extension.get_payload()):\r\n          extension.drop_payload() # Send extension with empty payload.\r\n   \r\n   # decompress\r\n   for inner in client_hello_inner.extensions:\r\n       if inner.get_payload() == None\r\n            for outer in client_hello_outer.extensions:\r\n                 if outer.get_type() == inner.get_type():\r\n                      inner.set_payload(outer.get_payload())\r\n```\r\nThis would have the added benefit of not needing to define an additional extension point.",
+          "createdAt": "2020-08-13T19:39:31Z",
+          "updatedAt": "2020-08-13T19:59:45Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "The alternative doesn't quite work because extensions can legitimately be empty, so it's ambiguous whether you meant to explicitly encode an empty extension or reference the outer one. For example, the old TLS 1.2 `session_ticket` extension was empty to signal \"I support tickets but am not sending one\" and a non-empty string to send a ticket.\r\n\r\nThat's a good point though. The compression algorithm in 6.1 breaks if the removed extensions are non-contiguous, so it should either include that requirement, or we come up with a different goofy encoding. :-)",
+          "createdAt": "2020-08-13T20:23:17Z",
+          "updatedAt": "2020-08-13T20:23:17Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Ah, good point. I would be fine with adding the requirement, though it might be worth trying to come up with something more general.",
+          "createdAt": "2020-08-13T20:45:33Z",
+          "updatedAt": "2020-08-13T20:45:33Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "One possible replacement paragraph:\r\n\r\n> When sending ClientHello, the client MAY substitute extensions which it knows will be duplicated in ClientHelloOuter. To do so, the client arranges the duplicate extensions contiguously in the extension list when computing ClientHelloInner, including any PSK binders. The client then computes a hash of the entire ClientHelloInner message with the same hash as for the KDF used to encrypt ClientHelloInner. Finally, the client removes and replaces extensions from ClientHelloInner with a single \"outer_extensions\" extension. The list of outer_extensions include those which were removed from ClientHelloInner, in the order in which they were removed. The hash contains the full ClientHelloInner hash computed above.\r\n\r\n(I'm also fine with replacing with a more general encoding.)",
+          "createdAt": "2020-08-13T21:01:47Z",
+          "updatedAt": "2020-08-13T21:01:47Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "We should also require that the \"outer_extensions\" extension appears where the contiguous extensions were. For example,  to compress `b` and `c`, we encode `[a, b, c, d]` as `[a, outer_extensions = [b_shallow_copy, c_shallow_copy], d]`. Otherwise the \"outer_extensions\" MAY appear somewhere else.\r\n",
+          "createdAt": "2020-08-13T21:09:49Z",
+          "updatedAt": "2020-08-13T21:20:45Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "In fact, that leads to a more general encoding.\r\n```python\r\n# encode (i.e., compress)\r\nencoded_client_hello_inner = ClientHelloInner()\r\nouter_extensions = OuterExtensions()\r\nfor inner in client_hello_inner.extensions:\r\n    if inner in client_hello_outer.extensions and too_big(inner): # processing contiguous compressed extensions\r\n        outer_extensions.append(inner.get_type())\r\n    else:\r\n        if not outer_extensions.empty(): # end of contiguous compressed extensions \r\n            encoded_client_hello_inner.append(outer_extensions)\r\n            outer_extensions = OuterExtensions()\r\n        encoded_client_hello_inner.append(inner)\r\nif not outer_extensions.empty():\r\n    encoded_client_hello_inner.append(outer_extensions) \r\n```\r\nI guess the problem with this is that we can have multiple \"outer_extension\" extensions in the inner CH, so we would still need to ensure there is just one contiguous block. Or we can say \"screw it\" and decide that **the encoded form of** ClientHelloInner need not be a well-formed ClientHello.",
+          "createdAt": "2020-08-13T21:10:12Z",
+          "updatedAt": "2020-08-13T22:00:47Z"
         }
       ]
     },
@@ -5236,7 +5278,7 @@
       "labels": [],
       "body": "ECH currently uses two different kinds of padding. The encrypted ClientHello is padded with the padding extension, while the server response is padded with TLS 1.3 record layer padding.\r\nhttps://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-07#section-7.1\r\nhttps://datatracker.ietf.org/doc/html/draft-ietf-tls-esni-07#section-7.2\r\n\r\nUsing record-level padding in TLS over TCP is relatively straightforward as it\u2019s ordered. However DTLS and QUIC have their own record layers, with retransmission logic. Properly hiding some length then requires that packet loss and retransmission logic track and retransmit padding as if it were integrated into the byte stream.\r\n\r\nIn the case of QUIC, when a QUIC packet is determined to be lost, it is not retransmitted whole; instead information carried in the frames in lost packets might be sent again in new frames (draft-ietf-quic-transport, section 13.3). That same section states that PADDING frames do not need to be retransmitted. If ECH in QUIC relies on QUIC transport layer padding, that would need to be changed, and implementations would need to track how much adding is associated with CRYPTO frame data for retransmission.\r\n\r\nQUIC additionally needs the padding size communicated across API boundaries between the TLS and QUIC implementations. It\u2019s likely that everyone\u2019s first pass at the API will omit this, only to need to add an extra parameter (API change) later when they implement ECH.\r\n\r\nThis seems a somewhat general issue between padding at reliably- and unreliably-transmitted layers of the stack. HTTP/3 has something analogous (though carried in slightly frames). That draft actually discusses two options for padding and calls out the relation to packet loss:\r\n\r\n> Where HTTP/2 employs PADDING frames and Padding fields in other frames to make a connection more resistant to traffic analysis, HTTP/3 can either rely on transport-layer padding or employ the reserved frame and stream types discussed in Section 7.2.8 and Section 6.2.3. These methods of padding produce different results in terms of the granularity of padding, how padding is arranged in relation to the information that is being protected, whether padding is applied in the case of packet loss, and how an implementation might control padding. Redundant padding could even be counterproductive.\r\n\r\nhttps://quicwg.org/base-drafts/draft-ietf-quic-http.html#name-padding-and-traffic-analysi\r\n\r\nShould we match that precedent and move the padding into the handshake itself? That would make it apply to DTLS and QUIC transparently. If we do, a couple possibilities to start with:\r\n\r\n* Say that ECH implementations must tolerate unsolicited padding extensions and inject those into various messages. This is a goofy around messages without extensions (CertificateVerify), or messages with multiple extension blocks (Certificate), but as long as there is an extension block _somewhere_ in each padded flight, it's probably possible to fudge it.\r\n* Say that ECH adds a new kind of Padding handshake message, which the sender can incorporate into the handshake as needed, and the receiver ignores.\r\n\r\nIf we leave ECH as-is, it seems to me QUIC (both spec and implementations) needs some changes to track padding across retransmission.",
       "createdAt": "2020-08-13T18:03:12Z",
-      "updatedAt": "2020-08-13T18:25:20Z",
+      "updatedAt": "2020-08-14T16:03:02Z",
       "closedAt": null,
       "comments": [
         {
@@ -5245,6 +5287,34 @@
           "body": "(2) seems simplest and most useful to me. The receiver path is trivial, and avoiding per-message semantics for adding padding (or not, if the extension isn't supported) seems easier. (This would also let clients move inner CH padding from an extension to a message, which might simplify padding calculations in the case where binders are used? That is, it can pad a fully-formed CH, rather than only part of a CH.)",
           "createdAt": "2020-08-13T18:25:20Z",
           "updatedAt": "2020-08-13T18:25:20Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "The alternative is to tell the QUIC stack to pad, in the same way that TLS is told to pad.  This is more complicated in QUIC, because you have to respect packet boundaries and ensure that you include ack-eliciting frames in packets that might other contain only padding, but it is doable.\r\n\r\nThis is not by any means perfect, but it matches the signals in TLS.  The handshake tells the record layer: \"pad to X\".",
+          "createdAt": "2020-08-14T01:23:01Z",
+          "updatedAt": "2020-08-14T01:23:01Z"
+        },
+        {
+          "author": "kazuho",
+          "authorAssociation": "COLLABORATOR",
+          "body": "My +1 goes to padding at the handshake message level.\r\n\r\nPadding at the record layer (or QUIC packet layer) is going to require more work and have more security concerns, as the transport needs to pad retransmissions.\r\n\r\nAs an example, when a handshake message that requires padding is split into multiple packets, and one of the packets gets lost, the transport has to figure out what to send and how to pad. In case of QUIC, we also have to make sure that PING frame would be used when the only thing that has to be retransmitted is padding, because not sending an ack-eliciting packet would reveal to a passive observer that it was padding only.",
+          "createdAt": "2020-08-14T01:29:05Z",
+          "updatedAt": "2020-08-14T01:29:05Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "An alternative to a Padding message is to use the existing padding extension (in Certificate or EncryptedExtensions or both) to ensure that the overall message is the right size.  That accomplishes the goal, but it does require that the client be willing to send it, or we create a new exception to the rules for extensions.  You could, I guess, add the padding to the ECH extension.\r\n\r\nNew messages cost more (than I'd like).",
+          "createdAt": "2020-08-14T04:48:12Z",
+          "updatedAt": "2020-08-14T04:48:12Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I just realized a nuisance with the extensions option: certificate extensions are incompatible with draft-ietf-tls-certificate-compression, which is [important for QUIC](https://www.fastly.com/blog/quic-handshake-tls-compression-certificates-extension-study). The extension compresses the entire Certificate message, so any padding messages inside the payload would get compressed away.\r\n\r\nWe could still fudge this by computing how much padding would be needed ahead of time and then adjusting the padding in EncryptedExtensions (same flight and all), but this is getting pretty silly. :-)\r\n\r\nAn aside since this comes up alot: ECH and certificate compression are perfectly compatible. Rather than padding up to `max(len(cert) for cert in anonymity_set)`, you pad the compressed cert up to `max(len(compress(cert)) for cert in anonymity_set)`. The key observation is that, assuming compression support is uniform across the anonymity set, *whether* you compressed is not sensitive, only *what* you compressed.\r\n\r\n> New messages cost more (than I'd like).\r\n\r\nHuh, I'd actually seen the extension as more annoying, since we'd need to add quirks to the unsolicited extensions rule. Is the issue for you all the state machine integration or something else? (I was envisioning we'd just have the handshake message logic silently drop all the padding messages on the ground so the handshake state machine doesn't notice.)",
+          "createdAt": "2020-08-14T16:03:01Z",
+          "updatedAt": "2020-08-14T16:03:01Z"
         }
       ]
     },
@@ -5291,7 +5361,7 @@
     {
       "number": 267,
       "id": "MDU6SXNzdWU2Nzg2NTgwNTQ=",
-      "title": "\"ech_accept\" response type undefined.",
+      "title": "\"ech_accept\" response type undefined",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/267",
       "state": "OPEN",
       "author": "cjpatton",
@@ -5300,7 +5370,7 @@
       "labels": [],
       "body": "Section 6: \r\n\r\n> Finally, requirements in {{client-behavior}} and {{server-behavior}} require\r\nimplementations to track, alongside each PSK established by a previous\r\nconnection, whether the connection negotiated this extension with the\r\n\"ech_accept\" response type. If so, this is referred to as an \"ECH PSK\".\r\nOtherwise, it is a \"non-ECH PSK\". This may be implemented by adding a new field\r\nto client and server session states.\r\n\r\n\"ech_accept\" is not defined anywhere.\r\n",
       "createdAt": "2020-08-13T18:44:56Z",
-      "updatedAt": "2020-08-13T18:44:56Z",
+      "updatedAt": "2020-08-13T21:51:42Z",
       "closedAt": null,
       "comments": []
     }
