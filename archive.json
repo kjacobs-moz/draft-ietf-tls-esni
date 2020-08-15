@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-14T16:39:02.590420+00:00",
+  "timestamp": "2020-08-15T19:13:08.426767+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -19343,6 +19343,73 @@
           "createdAt": "2020-08-13T19:35:42Z",
           "updatedAt": "2020-08-13T19:35:42Z",
           "comments": []
+        }
+      ]
+    },
+    {
+      "number": 268,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY4MzAzNjMz",
+      "title": "Fix superfluous padding edge cases.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/268",
+      "state": "OPEN",
+      "author": "chris-wood",
+      "authorAssociation": "COLLABORATOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Consider the following values for L and D, where L is the server's hint\r\nand D is the length of the domain name.\r\n\r\n~~~\r\n    D1     D2      D3\r\n... -+--|---+---|---+---|----->\r\n        L     32*n   32*(n+1)\r\n~~~\r\n\r\nThis change pads D according to the following rules.\r\n\r\n- D1: D <= L, so round up to L.\r\n- D2: 32*(n-1) <= L < D <= 32*n, round up to 32*(n+1).\r\n- D3: 32*(n-1) <= L <= 32*n < D, round up to 32*(n+1).\r\n\r\nCase D2 exists because the anonymity set of of D, if rounded to 32*n\r\n(instead of 32*(n+1), is less than 32. The new padding algorithm ensures\r\nthat the anonymity set for D whenever D > L is at least 32 elements.\r\n\r\nCloses #252. Thanks, @bemasc!",
+      "createdAt": "2020-08-15T12:57:39Z",
+      "updatedAt": "2020-08-15T19:13:00Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "tlswg/draft-ietf-tls-esni",
+      "headRefName": "caw/fix-padding",
+      "headRefOid": "1cfe0cc4a61fbc1078aed36cd10c3675825c365b",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4MDExOTkx",
+          "commit": {
+            "abbreviatedOid": "96942ef"
+          },
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2020-08-15T19:03:09Z",
+          "updatedAt": "2020-08-15T19:04:27Z",
+          "comments": [
+            {
+              "originalPosition": 12,
+              "body": "Technically this no longer \"rounds D up to the nearest multiple of 32 bytes\".  How about\r\n```suggestion\r\n   multiple of 32 bytes that permits at least 32 bytes of length ambiguity.\r\n```",
+              "createdAt": "2020-08-15T19:03:09Z",
+              "updatedAt": "2020-08-15T19:12:42Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4MDEyNDU2",
+          "commit": {
+            "abbreviatedOid": "96942ef"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-15T19:12:33Z",
+          "updatedAt": "2020-08-15T19:12:34Z",
+          "comments": [
+            {
+              "originalPosition": 12,
+              "body": "Better \u2014 thanks!",
+              "createdAt": "2020-08-15T19:12:34Z",
+              "updatedAt": "2020-08-15T19:12:42Z"
+            }
+          ]
         }
       ]
     }
