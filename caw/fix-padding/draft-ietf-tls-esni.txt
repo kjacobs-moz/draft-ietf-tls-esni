@@ -646,7 +646,8 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    2.  Otherwise, let P = 31 - ((D - 1) % 32), and add P bytes of
        padding, plus an additional 32 bytes if D + P < L + 32.  This
-       rounds D up to the nearest multiple of 32 bytes.
+       rounds D up to the nearest multiple of 32 bytes that permits at
+       least 32 bytes of length ambiguity.
 
    In addition to padding ClientHelloInner, clients and servers will
    also need to pad all other handshake messages that have sensitive-
@@ -662,7 +663,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    there is no indication in ServerHello of which one the server has
    done and the client must therefore use trial decryption in order to
    determine this.
-
 
 
 
