@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 14 February 2021                                         Fastly
+Expires: 18 February 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                          13 August 2020
+                                                          17 August 2020
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 14 February 2021.
+   This Internet-Draft will expire on 18 February 2021.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 1]
+Rescorla, et al.        Expires 18 February 2021                [Page 1]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 2]
+Rescorla, et al.        Expires 18 February 2021                [Page 2]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -143,29 +143,29 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    The target domain may also be visible through other channels, such as
    plaintext client DNS queries, visible server IP addresses (assuming
    the server does not use domain-based virtual hosting), or other
-   indirect mechanisms such as traffic analysis.  DoH
-   [I-D.ietf-doh-dns-over-https] and DPRIVE [RFC7858] [RFC8094] provide
-   mechanisms for clients to conceal DNS lookups from network
-   inspection, and many TLS servers host multiple domains on the same IP
-   address.  In such environments, the SNI remains the primary explicit
-   signal used to determine the server's identity.
+   indirect mechanisms such as traffic analysis.  DoH [RFC8484] and
+   DPRIVE [RFC7858] [RFC8094] provide mechanisms for clients to conceal
+   DNS lookups from network inspection, and many TLS servers host
+   multiple domains on the same IP address.  In such environments, the
+   SNI remains the primary explicit signal used to determine the
+   server's identity.
 
    The TLS Working Group has studied the problem of protecting the SNI,
    but has been unable to develop a completely generic solution.
-   [I-D.ietf-tls-sni-encryption] provides a description of the problem
-   space and some of the proposed techniques.  One of the more difficult
-   problems is "Do not stick out" ([I-D.ietf-tls-sni-encryption],
-   Section 3.4): if only sensitive or private services use SNI
-   encryption, then SNI encryption is a signal that a client is going to
-   such a service.  For this reason, much recent work has focused on
-   concealing the fact that the SNI is being protected.  Unfortunately,
-   the result often has undesirable performance consequences, incomplete
-   coverage, or both.
+   [RFC8744] provides a description of the problem space and some of the
+   proposed techniques.  One of the more difficult problems is "Do not
+   stick out" ([RFC8744], Section 3.4): if only sensitive or private
+   services use SNI encryption, then SNI encryption is a signal that a
+   client is going to such a service.  For this reason, much recent work
+   has focused on concealing the fact that the SNI is being protected.
+   Unfortunately, the result often has undesirable performance
+   consequences, incomplete coverage, or both.
 
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 3]
+
+Rescorla, et al.        Expires 18 February 2021                [Page 3]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -221,7 +221,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 4]
+Rescorla, et al.        Expires 18 February 2021                [Page 4]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -277,7 +277,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 5]
+Rescorla, et al.        Expires 18 February 2021                [Page 5]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -333,7 +333,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 6]
+Rescorla, et al.        Expires 18 February 2021                [Page 6]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -389,7 +389,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 7]
+Rescorla, et al.        Expires 18 February 2021                [Page 7]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -445,7 +445,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 8]
+Rescorla, et al.        Expires 18 February 2021                [Page 8]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -501,7 +501,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021                [Page 9]
+Rescorla, et al.        Expires 18 February 2021                [Page 9]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -557,7 +557,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 10]
+Rescorla, et al.        Expires 18 February 2021               [Page 10]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -613,7 +613,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 11]
+Rescorla, et al.        Expires 18 February 2021               [Page 11]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -669,7 +669,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 12]
+Rescorla, et al.        Expires 18 February 2021               [Page 12]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -725,7 +725,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 13]
+Rescorla, et al.        Expires 18 February 2021               [Page 13]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -781,7 +781,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 14]
+Rescorla, et al.        Expires 18 February 2021               [Page 14]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -837,7 +837,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 15]
+Rescorla, et al.        Expires 18 February 2021               [Page 15]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -893,7 +893,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 16]
+Rescorla, et al.        Expires 18 February 2021               [Page 16]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -949,7 +949,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 17]
+Rescorla, et al.        Expires 18 February 2021               [Page 17]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1005,7 +1005,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 18]
+Rescorla, et al.        Expires 18 February 2021               [Page 18]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1061,7 +1061,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 19]
+Rescorla, et al.        Expires 18 February 2021               [Page 19]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1117,7 +1117,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 20]
+Rescorla, et al.        Expires 18 February 2021               [Page 20]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1173,7 +1173,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 21]
+Rescorla, et al.        Expires 18 February 2021               [Page 21]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1229,7 +1229,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 22]
+Rescorla, et al.        Expires 18 February 2021               [Page 22]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1245,9 +1245,9 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 10.6.  Comparison Against Criteria
 
-   [I-D.ietf-tls-sni-encryption] lists several requirements for SNI
-   encryption.  In this section, we re-iterate these requirements and
-   assess the ECH design against them.
+   [RFC8744] lists several requirements for SNI encryption.  In this
+   section, we re-iterate these requirements and assess the ECH design
+   against them.
 
 10.6.1.  Mitigate against replay attacks
 
@@ -1285,7 +1285,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 23]
+Rescorla, et al.        Expires 18 February 2021               [Page 23]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1341,7 +1341,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 24]
+Rescorla, et al.        Expires 18 February 2021               [Page 24]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1397,7 +1397,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 25]
+Rescorla, et al.        Expires 18 February 2021               [Page 25]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1453,7 +1453,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 26]
+Rescorla, et al.        Expires 18 February 2021               [Page 26]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1509,7 +1509,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 27]
+Rescorla, et al.        Expires 18 February 2021               [Page 27]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1565,7 +1565,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 28]
+Rescorla, et al.        Expires 18 February 2021               [Page 28]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1613,31 +1613,18 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 13.2.  Informative References
 
-   [I-D.ietf-doh-dns-over-https]
-              Hoffman, P. and P. McManus, "DNS Queries over HTTPS
-              (DoH)", Work in Progress, Internet-Draft, draft-ietf-doh-
-              dns-over-https-14, 16 August 2018, <http://www.ietf.org/
-              internet-drafts/draft-ietf-doh-dns-over-https-14.txt>.
-
-
-
-Rescorla, et al.        Expires 14 February 2021               [Page 29]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
-   [I-D.ietf-tls-sni-encryption]
-              Huitema, C. and E. Rescorla, "Issues and Requirements for
-              SNI Encryption in TLS", Work in Progress, Internet-Draft,
-              draft-ietf-tls-sni-encryption-09, 28 October 2019,
-              <http://www.ietf.org/internet-drafts/draft-ietf-tls-sni-
-              encryption-09.txt>.
-
    [I-D.kazuho-protected-sni]
               Oku, K., "TLS Extensions for Protecting SNI", Work in
               Progress, Internet-Draft, draft-kazuho-protected-sni-00,
               18 July 2017, <http://www.ietf.org/internet-drafts/draft-
               kazuho-protected-sni-00.txt>.
+
+
+
+Rescorla, et al.        Expires 18 February 2021               [Page 29]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
    [RFC7301]  Friedl, S., Popov, A., Langley, A., and E. Stephan,
               "Transport Layer Security (TLS) Application-Layer Protocol
@@ -1654,10 +1641,19 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
               DOI 10.17487/RFC8094, February 2017,
               <https://www.rfc-editor.org/info/rfc8094>.
 
+   [RFC8484]  Hoffman, P. and P. McManus, "DNS Queries over HTTPS
+              (DoH)", RFC 8484, DOI 10.17487/RFC8484, October 2018,
+              <https://www.rfc-editor.org/info/rfc8484>.
+
    [RFC8701]  Benjamin, D., "Applying Generate Random Extensions And
               Sustain Extensibility (GREASE) to TLS Extensibility",
               RFC 8701, DOI 10.17487/RFC8701, January 2020,
               <https://www.rfc-editor.org/info/rfc8701>.
+
+   [RFC8744]  Huitema, C., "Issues and Requirements for Server Name
+              Identification (SNI) Encryption in TLS", RFC 8744,
+              DOI 10.17487/RFC8744, July 2020,
+              <https://www.rfc-editor.org/info/rfc8744>.
 
 Appendix A.  Alternative SNI Protection Designs
 
@@ -1677,7 +1673,11 @@ A.1.  TLS-layer
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 30]
+
+
+
+
+Rescorla, et al.        Expires 18 February 2021               [Page 30]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1733,7 +1733,7 @@ A.2.  Application-layer
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 31]
+Rescorla, et al.        Expires 18 February 2021               [Page 31]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1789,7 +1789,7 @@ Appendix B.  Total Client Hello Encryption
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 32]
+Rescorla, et al.        Expires 18 February 2021               [Page 32]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1845,4 +1845,4 @@ Authors' Addresses
 
 
 
-Rescorla, et al.        Expires 14 February 2021               [Page 33]
+Rescorla, et al.        Expires 18 February 2021               [Page 33]

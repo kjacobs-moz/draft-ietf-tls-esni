@@ -808,7 +808,7 @@ address div.right {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Rescorla, et al.</td>
-<td class="center">Expires 14 February 2021</td>
+<td class="center">Expires 18 February 2021</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -821,12 +821,12 @@ address div.right {
 <dd class="internet-draft">draft-ietf-tls-esni-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2020-08-13" class="published">13 August 2020</time>
+<time datetime="2020-08-17" class="published">17 August 2020</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2021-02-14">14 February 2021</time></dd>
+<dd class="expires"><time datetime="2021-02-18">18 February 2021</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -873,7 +873,7 @@ encrypting a ClientHello message under a server public key.<a href="#section-abs
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 14 February 2021.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 18 February 2021.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1125,16 +1125,16 @@ unencrypted in TLS 1.3.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">The target domain may also be visible through other channels, such as plaintext
 client DNS queries, visible server IP addresses (assuming the server does not
 use domain-based virtual hosting), or other indirect mechanisms such as traffic
-analysis. DoH <span>[<a href="#I-D.ietf-doh-dns-over-https" class="xref">I-D.ietf-doh-dns-over-https</a>]</span> and DPRIVE <span>[<a href="#RFC7858" class="xref">RFC7858</a>]</span>
+analysis. DoH <span>[<a href="#RFC8484" class="xref">RFC8484</a>]</span> and DPRIVE <span>[<a href="#RFC7858" class="xref">RFC7858</a>]</span>
         <span>[<a href="#RFC8094" class="xref">RFC8094</a>]</span> provide mechanisms for clients to conceal DNS lookups from network
 inspection, and many TLS servers host multiple domains on the same IP address.
 In such environments, the SNI remains the primary explicit signal used to
 determine the server's identity.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">The TLS Working Group has studied the problem of protecting the SNI, but has
 been unable to develop a completely generic solution.
-<span>[<a href="#I-D.ietf-tls-sni-encryption" class="xref">I-D.ietf-tls-sni-encryption</a>]</span> provides a description of the problem space and
+<span>[<a href="#RFC8744" class="xref">RFC8744</a>]</span> provides a description of the problem space and
 some of the proposed techniques. One of the more difficult problems is "Do not
-stick out" (<span>[<a href="#I-D.ietf-tls-sni-encryption" class="xref">I-D.ietf-tls-sni-encryption</a>]</span>, Section 3.4): if only sensitive or
+stick out" (<span>[<a href="#RFC8744" class="xref">RFC8744</a>]</span>, Section 3.4): if only sensitive or
 private services use SNI encryption, then SNI encryption is a signal that a
 client is going to such a service. For this reason, much recent work has focused
 on concealing the fact that the SNI is being protected. Unfortunately, the
@@ -2108,7 +2108,7 @@ validation.<a href="#section-10.5-2" class="pilcrow">¶</a></p>
         <h3 id="name-comparison-against-criteria">
 <a href="#section-10.6" class="section-number selfRef">10.6. </a><a href="#name-comparison-against-criteria" class="section-name selfRef">Comparison Against Criteria</a>
         </h3>
-<p id="section-10.6-1"><span>[<a href="#I-D.ietf-tls-sni-encryption" class="xref">I-D.ietf-tls-sni-encryption</a>]</span> lists several requirements for SNI encryption.
+<p id="section-10.6-1"><span>[<a href="#RFC8744" class="xref">RFC8744</a>]</span> lists several requirements for SNI encryption.
 In this section, we re-iterate these requirements and assess the ECH design
 against them.<a href="#section-10.6-1" class="pilcrow">¶</a></p>
 <div id="mitigate-against-replay-attacks">
@@ -2496,14 +2496,6 @@ the inner ClientHello is the true ClientHello used upon ECH negotiation.<a href=
 <a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
-<dt id="I-D.ietf-doh-dns-over-https">[I-D.ietf-doh-dns-over-https]</dt>
-        <dd>
-<span class="refAuthor">Hoffman, P.</span><span class="refAuthor"> and P. McManus</span>, <span class="refTitle">"DNS Queries over HTTPS (DoH)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-doh-dns-over-https-14</span>, <time datetime="2018-08-16" class="refDate">16 August 2018</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-ietf-doh-dns-over-https-14.txt">http://www.ietf.org/internet-drafts/draft-ietf-doh-dns-over-https-14.txt</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="I-D.ietf-tls-sni-encryption">[I-D.ietf-tls-sni-encryption]</dt>
-        <dd>
-<span class="refAuthor">Huitema, C.</span><span class="refAuthor"> and E. Rescorla</span>, <span class="refTitle">"Issues and Requirements for SNI Encryption in TLS"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-tls-sni-encryption-09</span>, <time datetime="2019-10-28" class="refDate">28 October 2019</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-ietf-tls-sni-encryption-09.txt">http://www.ietf.org/internet-drafts/draft-ietf-tls-sni-encryption-09.txt</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="I-D.kazuho-protected-sni">[I-D.kazuho-protected-sni]</dt>
         <dd>
 <span class="refAuthor">Oku, K.</span>, <span class="refTitle">"TLS Extensions for Protecting SNI"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-kazuho-protected-sni-00</span>, <time datetime="2017-07-18" class="refDate">18 July 2017</time>, <span>&lt;<a href="http://www.ietf.org/internet-drafts/draft-kazuho-protected-sni-00.txt">http://www.ietf.org/internet-drafts/draft-kazuho-protected-sni-00.txt</a>&gt;</span>. </dd>
@@ -2520,9 +2512,17 @@ the inner ClientHello is the true ClientHello used upon ECH negotiation.<a href=
         <dd>
 <span class="refAuthor">Reddy, T.</span><span class="refAuthor">, Wing, D.</span><span class="refAuthor">, and P. Patil</span>, <span class="refTitle">"DNS over Datagram Transport Layer Security (DTLS)"</span>, <span class="seriesInfo">RFC 8094</span>, <span class="seriesInfo">DOI 10.17487/RFC8094</span>, <time datetime="2017-02" class="refDate">February 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8094">https://www.rfc-editor.org/info/rfc8094</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC8484">[RFC8484]</dt>
+        <dd>
+<span class="refAuthor">Hoffman, P.</span><span class="refAuthor"> and P. McManus</span>, <span class="refTitle">"DNS Queries over HTTPS (DoH)"</span>, <span class="seriesInfo">RFC 8484</span>, <span class="seriesInfo">DOI 10.17487/RFC8484</span>, <time datetime="2018-10" class="refDate">October 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8484">https://www.rfc-editor.org/info/rfc8484</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC8701">[RFC8701]</dt>
-      <dd>
+        <dd>
 <span class="refAuthor">Benjamin, D.</span>, <span class="refTitle">"Applying Generate Random Extensions And Sustain Extensibility (GREASE) to TLS Extensibility"</span>, <span class="seriesInfo">RFC 8701</span>, <span class="seriesInfo">DOI 10.17487/RFC8701</span>, <time datetime="2020-01" class="refDate">January 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8701">https://www.rfc-editor.org/info/rfc8701</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8744">[RFC8744]</dt>
+      <dd>
+<span class="refAuthor">Huitema, C.</span>, <span class="refTitle">"Issues and Requirements for Server Name Identification (SNI) Encryption in TLS"</span>, <span class="seriesInfo">RFC 8744</span>, <span class="seriesInfo">DOI 10.17487/RFC8744</span>, <time datetime="2020-07" class="refDate">July 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/info/rfc8744">https://www.rfc-editor.org/info/rfc8744</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
