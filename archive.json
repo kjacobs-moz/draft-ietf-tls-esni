@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-15T19:13:08.426767+00:00",
+  "timestamp": "2020-08-17T20:20:21.007744+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -5116,7 +5116,7 @@
       "labels": [],
       "body": "From Section 6.1:\r\n\r\n```\r\n   When sending ClientHello, the client first computes ClientHelloInner,\r\n   including any PSK binders, and then MAY substitute extensions which\r\n   it knows will be duplicated in ClientHelloOuter.  To do so, the\r\n   client computes a hash H of the entire ClientHelloInner message with\r\n   the same hash as for the KDF used to encrypt ClienHelloInner.  Then,\r\n   the client removes and and replaces extensions from ClientHelloInner\r\n   with a single \"outer_extensions\" extension.  The list of\r\n   outer_extensions include those which were removed from\r\n   ClientHelloInner, in the order in which they were removed.  The hash\r\n   contains the full ClientHelloInner hash H computed above.\r\n```\r\n\r\nThis assumes that the KDF specifies some underlying hash function. From the HPKE spec, it seems like all that's required of the KDF is that it's an \"extract-then-expand\" KDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-4\r\n\r\nIn fact, the currently assigned code points are all for HKDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-7.2\r\n\r\nBut there's no requirement that the KDF always have some underlying hash function. As an alternative to HKDF, one can imagine a dedicated primitive that satisfies the extract-then-expand API but is not constructed from a hash function.",
       "createdAt": "2020-08-12T22:20:25Z",
-      "updatedAt": "2020-08-13T18:17:41Z",
+      "updatedAt": "2020-08-17T20:09:41Z",
       "closedAt": null,
       "comments": [
         {
@@ -5146,6 +5146,13 @@
           "body": "Sure, but in practice randomness extractors use a collision resistant hash or PRF (CBC) under the hood. \r\n\r\nI don't think we can require HKDF for HPKE. That seems too restrictive. We might just say that ECH requires HKDF-based HPKE ciphersuites, as HKDF is already paramount for TLS 1.3, and then just reference HKDF's hash function. ",
           "createdAt": "2020-08-13T18:17:41Z",
           "updatedAt": "2020-08-13T18:17:41Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "#271 addresses this issue.",
+          "createdAt": "2020-08-17T20:09:40Z",
+          "updatedAt": "2020-08-17T20:09:40Z"
         }
       ]
     },
@@ -5330,9 +5337,17 @@
       "labels": [],
       "body": "In Section 6.1:\r\n\r\n> Clients SHOULD only use this mechanism for extensions which are large. All other extensions SHOULD appear in both ClientHelloInner and ClientHelloOuter even if they have identical values. \r\n\r\nif I were implementing this extension, I think the simplest thing would be to compress all copied extensions by default:\r\n1. it's not computationally intensive;\r\n1. it minimizes bandwidth overhead; and\r\n1. it's simpler for future \"big\" extensions, since no code changes would be needed here.\r\n\r\nI suggest removing this guidance.",
       "createdAt": "2020-08-13T18:29:51Z",
-      "updatedAt": "2020-08-13T18:29:51Z",
+      "updatedAt": "2020-08-17T20:09:03Z",
       "closedAt": null,
-      "comments": []
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "#272 addresses this issue.",
+          "createdAt": "2020-08-17T20:09:03Z",
+          "updatedAt": "2020-08-17T20:09:03Z"
+        }
+      ]
     },
     {
       "number": 266,
@@ -5346,7 +5361,7 @@
       "labels": [],
       "body": "Section 7.1 provides a bit of guidance on how ECH might interact with other extensions:\r\n\r\n> The client MUST place the value of ECHConfig.public_name in the ClientHelloOuter\r\n\"server_name\" extension. The ClientHelloOuter MUST NOT contain a \"cached_info\"\r\nextension {{!RFC7924}} with a CachedObject entry whose CachedInformationType is\r\n\"cert\", since this indication would divulge the true server name. The remaining\r\ncontents of the ClientHelloOuter MAY be identical to those in ClientHelloInner\r\nbut MAY also differ.\r\n\r\nI think it's worth expanding on this in \"Security Considerations\". There may be other ways that private CH extensions get leaked, now or in the future.",
       "createdAt": "2020-08-13T18:38:13Z",
-      "updatedAt": "2020-08-13T19:13:22Z",
+      "updatedAt": "2020-08-17T19:55:40Z",
       "closedAt": null,
       "comments": [
         {
@@ -5355,6 +5370,20 @@
           "body": "Now that we've switched to encrypting an entire ClientHello, I think the text wants to say something else anyway: if you want ECH + cached info, you simply include the cached_info extension in the ClientHelloInner, not the ClientHelloOuter. There wouldn't be much point in sending a true name cached_info in ClientHelloOuter since the true server would ignore it. Sending a public name cached_info in ClientHelloOuter is also plausible and also needn't be forbidden (it reveals information about the public name, which is public). It's also probably not that useful since it's just a recovery mechanism, but maybe to avoid sticking out, for clients that normally send it?\r\n\r\nMore generally, anything dependent on the inner name goes in ClientHelloInner and not ClientHelloOuter.",
           "createdAt": "2020-08-13T19:13:21Z",
           "updatedAt": "2020-08-13T19:13:21Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I took a stab at replacement text in https://github.com/tlswg/draft-ietf-tls-esni/pull/270. Thoughts?",
+          "createdAt": "2020-08-17T18:55:20Z",
+          "updatedAt": "2020-08-17T18:55:20Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I'm happy with it.",
+          "createdAt": "2020-08-17T19:55:39Z",
+          "updatedAt": "2020-08-17T19:55:39Z"
         }
       ]
     },
@@ -19358,7 +19387,7 @@
       "labels": [],
       "body": "Consider the following values for L and D, where L is the server's hint\r\nand D is the length of the domain name.\r\n\r\n~~~\r\n    D1     D2      D3\r\n... -+--|---+---|---+---|----->\r\n        L     32*n   32*(n+1)\r\n~~~\r\n\r\nThis change pads D according to the following rules.\r\n\r\n- D1: D <= L, so round up to L.\r\n- D2: 32*(n-1) <= L < D <= 32*n, round up to 32*(n+1).\r\n- D3: 32*(n-1) <= L <= 32*n < D, round up to 32*(n+1).\r\n\r\nCase D2 exists because the anonymity set of of D, if rounded to 32*n\r\n(instead of 32*(n+1), is less than 32. The new padding algorithm ensures\r\nthat the anonymity set for D whenever D > L is at least 32 elements.\r\n\r\nCloses #252. Thanks, @bemasc!",
       "createdAt": "2020-08-15T12:57:39Z",
-      "updatedAt": "2020-08-15T19:13:00Z",
+      "updatedAt": "2020-08-15T21:55:02Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
@@ -19410,6 +19439,180 @@
               "updatedAt": "2020-08-15T19:12:42Z"
             }
           ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4MDE5NzMx",
+          "commit": {
+            "abbreviatedOid": "1cfe0cc"
+          },
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-15T21:55:02Z",
+          "updatedAt": "2020-08-15T21:55:02Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 269,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY4OTQ1Njkx",
+      "title": "Proposal: Retry-only ECHConfig",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/269",
+      "state": "OPEN",
+      "author": "bemasc",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "A server operator always has the option to operate in a retry-only mode, which may be necessary if updating the published ECHConfig is difficult and long-lived keys are undesirable.  This change improves forward-secrecy in that configuration.",
+      "createdAt": "2020-08-17T16:45:35Z",
+      "updatedAt": "2020-08-17T18:15:23Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "bemasc/draft-ietf-tls-esni",
+      "headRefName": "patch-1",
+      "headRefOid": "dbb0f87207689ce7684d99286ccadcf26dd54f87",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Are there folks looking to deploy such a thing? The current retry flow costs 2-RTT (TCP + TLS) on top of a normal handshake. I don't think that's something to encourage. It's currently meant as a recovery flow. I think something meant to be used more frequently would want to look different and, in particular, stay in one connection to keep the overhead at 1-RTT. Possibly even with some client state for subsequent connections, though squaring that with multi-CDN is tricky.\r\n\r\nThat sort of thing came up on the list, but IIRC folks weren't very excited about the complexity involved and we kept it as a simpler, recovery-only story.",
+          "createdAt": "2020-08-17T17:18:10Z",
+          "updatedAt": "2020-08-17T17:18:10Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I agree; it's too expensive for normal use, and not worth complicating clients to improve performance.\r\n\r\nI'm thinking of use cases where DNS is not the distribution channel, and updating the ECHConfig is difficult.  It would be nice to be able to see that the ECHConfig is not \"pinning\" a key, and to have a shorter ECHConfig for very constrained distribution channels (e.g. a QR code).\r\n\r\nA client like this might fetch and cache real ECHConfigs once it's connected, but I think we can leave that to the application layer.",
+          "createdAt": "2020-08-17T18:15:23Z",
+          "updatedAt": "2020-08-17T18:15:23Z"
+        }
+      ],
+      "reviews": []
+    },
+    {
+      "number": 270,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDExNjg4",
+      "title": "Adjust and generalize cached_info guidance.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/270",
+      "state": "OPEN",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Now that we've switched to encrypting the entire ClientHello, there's\r\nnothing wrong with cached_info in ClientHelloOuter, provided it's based\r\non the public name rather than the inner name. And, more generally,\r\nname-specific extensions take some care.\r\n\r\nReplace the prohibition with more general guidance in Security\r\nConsiderations, with cached_info merely being an example.\r\n\r\nThis addresses issue #266.",
+      "createdAt": "2020-08-17T18:55:06Z",
+      "updatedAt": "2020-08-17T18:55:06Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "cached-info",
+      "headRefOid": "c3cd016faafd7bf069009bbe48415dceec013cbb",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 271,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDM2NDU0",
+      "title": "Require the KDF to be HKDF-based",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/271",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The spec makes use of the \"hash function underlying the KDF\", but the\r\nHPKE spec does not require such a function to exist. This resolves the\r\nissue by requiring that HKDF is used for key derivation in ECH.\r\n\r\nThis resolves #261.",
+      "createdAt": "2020-08-17T19:52:26Z",
+      "updatedAt": "2020-08-17T19:52:26Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "hkdf",
+      "headRefOid": "6d049d8732af9ba06bba1dee1634ff4fa261c66b",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 272,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDQzMTQ1",
+      "title": "Remove \"outer_extension\" compression guidance",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/272",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This addresses #265.",
+      "createdAt": "2020-08-17T20:08:35Z",
+      "updatedAt": "2020-08-17T20:08:35Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "compression_guidance",
+      "headRefOid": "8f380b9a9b27d865c5eeb34e3b79db70f4e6f924",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 273,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDQzMjQ1",
+      "title": "Update a few citations to RFCs.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/273",
+      "state": "MERGED",
+      "author": "davidben",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "",
+      "createdAt": "2020-08-17T20:08:48Z",
+      "updatedAt": "2020-08-17T20:19:34Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "headRepository": "davidben/draft-ietf-tls-esni",
+      "headRefName": "update-citations",
+      "headRefOid": "843793117fa2c7fd786d12ea45794e2805a037d3",
+      "closedAt": "2020-08-17T20:19:34Z",
+      "mergedAt": "2020-08-17T20:19:33Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "37e0e6a14db945988d21a08f506a3e74a8fc6bb7"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4ODA0NTMw",
+          "commit": {
+            "abbreviatedOid": "8437931"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-17T20:19:28Z",
+          "updatedAt": "2020-08-17T20:19:28Z",
+          "comments": []
         }
       ]
     }
