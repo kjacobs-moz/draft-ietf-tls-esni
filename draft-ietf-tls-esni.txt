@@ -5,11 +5,11 @@
 tls                                                          E. Rescorla
 Internet-Draft                                                RTFM, Inc.
 Intended status: Standards Track                                  K. Oku
-Expires: 18 February 2021                                         Fastly
+Expires: 19 February 2021                                         Fastly
                                                              N. Sullivan
                                                                C.A. Wood
                                                               Cloudflare
-                                                          17 August 2020
+                                                          18 August 2020
 
 
                        TLS Encrypted Client Hello
@@ -35,7 +35,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 February 2021.
+   This Internet-Draft will expire on 19 February 2021.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 1]
+Rescorla, et al.        Expires 19 February 2021                [Page 1]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -87,41 +87,42 @@ Table of Contents
      10.2.  Unauthenticated and Plaintext DNS  . . . . . . . . . . .  21
      10.3.  Client Tracking  . . . . . . . . . . . . . . . . . . . .  22
      10.4.  Optional Record Digests and Trial Decryption . . . . . .  22
-     10.5.  Related Privacy Leaks  . . . . . . . . . . . . . . . . .  22
-     10.6.  Comparison Against Criteria  . . . . . . . . . . . . . .  23
-       10.6.1.  Mitigate against replay attacks  . . . . . . . . . .  23
-       10.6.2.  Avoid widely-deployed shared secrets . . . . . . . .  23
-       10.6.3.  Prevent SNI-based DoS attacks  . . . . . . . . . . .  23
-       10.6.4.  Do not stick out . . . . . . . . . . . . . . . . . .  24
-       10.6.5.  Forward secrecy  . . . . . . . . . . . . . . . . . .  24
-       10.6.6.  Proper security context  . . . . . . . . . . . . . .  24
-       10.6.7.  Split server spoofing  . . . . . . . . . . . . . . .  24
-       10.6.8.  Supporting multiple protocols  . . . . . . . . . . .  24
-     10.7.  Padding Policy . . . . . . . . . . . . . . . . . . . . .  25
-     10.8.  Active Attack Mitigations  . . . . . . . . . . . . . . .  25
-       10.8.1.  Client Reaction Attack Mitigation  . . . . . . . . .  25
-       10.8.2.  HelloRetryRequest Hijack Mitigation  . . . . . . . .  26
-       10.8.3.  Resumption PSK Oracle Mitigation . . . . . . . . . .  27
+     10.5.  Outer ClientHello  . . . . . . . . . . . . . . . . . . .  22
+     10.6.  Related Privacy Leaks  . . . . . . . . . . . . . . . . .  23
+     10.7.  Comparison Against Criteria  . . . . . . . . . . . . . .  23
+       10.7.1.  Mitigate against replay attacks  . . . . . . . . . .  23
+       10.7.2.  Avoid widely-deployed shared secrets . . . . . . . .  24
+       10.7.3.  Prevent SNI-based DoS attacks  . . . . . . . . . . .  24
+       10.7.4.  Do not stick out . . . . . . . . . . . . . . . . . .  24
+       10.7.5.  Forward secrecy  . . . . . . . . . . . . . . . . . .  24
+       10.7.6.  Proper security context  . . . . . . . . . . . . . .  24
+       10.7.7.  Split server spoofing  . . . . . . . . . . . . . . .  25
+       10.7.8.  Supporting multiple protocols  . . . . . . . . . . .  25
+     10.8.  Padding Policy . . . . . . . . . . . . . . . . . . . . .  25
+     10.9.  Active Attack Mitigations  . . . . . . . . . . . . . . .  25
+       10.9.1.  Client Reaction Attack Mitigation  . . . . . . . . .  25
+       10.9.2.  HelloRetryRequest Hijack Mitigation  . . . . . . . .  26
+       10.9.3.  Resumption PSK Oracle Mitigation . . . . . . . . . .  27
    11. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  28
      11.1.  Update of the TLS ExtensionType Registry . . . . . . . .  28
-     11.2.  Update of the TLS Alert Registry . . . . . . . . . . . .  28
-   12. ECHConfig Extension Guidance  . . . . . . . . . . . . . . . .  28
+     11.2.  Update of the TLS Alert Registry . . . . . . . . . . . .  29
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 2]
+Rescorla, et al.        Expires 19 February 2021                [Page 2]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
-   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  28
-     13.1.  Normative References . . . . . . . . . . . . . . . . . .  28
-     13.2.  Informative References . . . . . . . . . . . . . . . . .  29
-   Appendix A.  Alternative SNI Protection Designs . . . . . . . . .  30
-     A.1.  TLS-layer . . . . . . . . . . . . . . . . . . . . . . . .  30
+   12. ECHConfig Extension Guidance  . . . . . . . . . . . . . . . .  29
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  29
+     13.1.  Normative References . . . . . . . . . . . . . . . . . .  29
+     13.2.  Informative References . . . . . . . . . . . . . . . . .  30
+   Appendix A.  Alternative SNI Protection Designs . . . . . . . . .  31
+     A.1.  TLS-layer . . . . . . . . . . . . . . . . . . . . . . . .  31
        A.1.1.  TLS in Early Data . . . . . . . . . . . . . . . . . .  31
-       A.1.2.  Combined Tickets  . . . . . . . . . . . . . . . . . .  31
-     A.2.  Application-layer . . . . . . . . . . . . . . . . . . . .  31
+       A.1.2.  Combined Tickets  . . . . . . . . . . . . . . . . . .  32
+     A.2.  Application-layer . . . . . . . . . . . . . . . . . . . .  32
        A.2.1.  HTTP/2 CERTIFICATE Frames . . . . . . . . . . . . . .  32
    Appendix B.  Total Client Hello Encryption  . . . . . . . . . . .  32
    Appendix C.  Acknowledgements . . . . . . . . . . . . . . . . . .  33
@@ -164,8 +165,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-
-Rescorla, et al.        Expires 18 February 2021                [Page 3]
+Rescorla, et al.        Expires 19 February 2021                [Page 3]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -221,7 +221,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 4]
+Rescorla, et al.        Expires 19 February 2021                [Page 4]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -277,7 +277,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 5]
+Rescorla, et al.        Expires 19 February 2021                [Page 5]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -333,26 +333,26 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 6]
+Rescorla, et al.        Expires 19 February 2021                [Page 6]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
        opaque HpkePublicKey<1..2^16-1>;
-       uint16 HkpeKemId;  // Defined in I-D.irtf-cfrg-hpke
-       uint16 HkpeKdfId;  // Defined in I-D.irtf-cfrg-hpke
-       uint16 HkpeAeadId; // Defined in I-D.irtf-cfrg-hpke
+       uint16 HpkeKemId;  // Defined in I-D.irtf-cfrg-hpke
+       uint16 HpkeKdfId;  // Defined in I-D.irtf-cfrg-hpke
+       uint16 HpkeAeadId; // Defined in I-D.irtf-cfrg-hpke
 
        struct {
-           HkpeKdfId kdf_id;
-           HkpeAeadId aead_id;
+           HpkeKdfId kdf_id;
+           HpkeAeadId aead_id;
        } HpkeCipherSuite;
 
        struct {
            opaque public_name<1..2^16-1>;
 
            HpkePublicKey public_key;
-           HkpeKemId kem_id;
+           HpkeKemId kem_id;
            HpkeCipherSuite cipher_suites<4..2^16-2>;
 
            uint16 maximum_name_length;
@@ -389,7 +389,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 7]
+Rescorla, et al.        Expires 19 February 2021                [Page 7]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -445,7 +445,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 8]
+Rescorla, et al.        Expires 19 February 2021                [Page 8]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -501,7 +501,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021                [Page 9]
+Rescorla, et al.        Expires 19 February 2021                [Page 9]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -557,7 +557,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 10]
+Rescorla, et al.        Expires 19 February 2021               [Page 10]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -613,7 +613,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 11]
+Rescorla, et al.        Expires 19 February 2021               [Page 11]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -657,19 +657,19 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       ClientHelloInner ciphertext (encrypted_ch_inner).
 
    The client MUST place the value of "ECHConfig.public_name" in the
-   ClientHelloOuter "server_name" extension.  The ClientHelloOuter MUST
-   NOT contain a "cached_info" extension [RFC7924] with a CachedObject
-   entry whose CachedInformationType is "cert", since this indication
-   would divulge the true server name.  The remaining contents of the
-   ClientHelloOuter MAY be identical to those in ClientHelloInner but
-   MAY also differ.
+   ClientHelloOuter "server_name" extension.  See Section 10.5 for
+   additional discussion of ClientHelloOuter values.
 
 
 
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 12]
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 12]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -725,7 +725,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 13]
+Rescorla, et al.        Expires 19 February 2021               [Page 13]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -781,7 +781,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 14]
+Rescorla, et al.        Expires 19 February 2021               [Page 14]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -837,7 +837,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 15]
+Rescorla, et al.        Expires 19 February 2021               [Page 15]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -866,7 +866,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    Clients then encrypt the second ClientHelloInner using this new HPKE
    context.  In doing so, the encrypted value is also authenticated by
-   ech_hrr_key.  The rationale for this is described in Section 10.8.2.
+   ech_hrr_key.  The rationale for this is described in Section 10.9.2.
 
    Client-facing servers perform the corresponding process when
    decrypting second ClientHelloInner messages.  In particular, upon
@@ -893,7 +893,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 16]
+Rescorla, et al.        Expires 19 February 2021               [Page 16]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -949,7 +949,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 17]
+Rescorla, et al.        Expires 19 February 2021               [Page 17]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1005,7 +1005,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 18]
+Rescorla, et al.        Expires 19 February 2021               [Page 18]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1061,7 +1061,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 19]
+Rescorla, et al.        Expires 19 February 2021               [Page 19]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1117,7 +1117,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 20]
+Rescorla, et al.        Expires 19 February 2021               [Page 20]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1173,7 +1173,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
 
 
-Rescorla, et al.        Expires 18 February 2021               [Page 21]
+Rescorla, et al.        Expires 19 February 2021               [Page 21]
 
 Internet-Draft         TLS Encrypted Client Hello            August 2020
 
@@ -1211,7 +1211,34 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    implement some form of rate limiting mechanism to limit the damage
    caused by such attacks.
 
-10.5.  Related Privacy Leaks
+10.5.  Outer ClientHello
+
+   Any information that the client includes in the ClientHelloOuter is
+   visible to passive observers.  The client SHOULD NOT send values in
+   the ClientHelloOuter which would reveal a sensitive ClientHelloInner
+   property, such as the true server name.  It MAY send values
+   associated with the public name in the ClientHelloOuter.
+
+   In particular, some extensions require the client send a server-name-
+   specific value in the ClientHello.  These values may reveal
+   information about the true server name.  For example, the
+   "cached_info" ClientHello extension [RFC7924] can contain the hash of
+   a previously observed server certificate.  The client SHOULD NOT send
+   values associated with the true server name in the ClientHelloOuter.
+   It MAY send such values in the ClientHelloInner.
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 22]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
+   Values which are independent of the true server name, or other
+   information the client wishes to protect, MAY be included in
+   ClientHelloOuter and compressed as described in Section 6.1.
+
+10.6.  Related Privacy Leaks
 
    ECH requires encrypted DNS to be an effective privacy protection
    mechanism.  However, verifying the server's identity from the
@@ -1224,16 +1251,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    specific traffic for additional information sources as part of
    verification.
 
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 22]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
    Implementations SHOULD avoid leaking information that may identify
    the server.  Even when sent over an encrypted transport, such
    requests may result in indirect exposure of the server's identity,
@@ -1243,13 +1260,13 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    SHOULD take steps to minimize or protect such requests during
    certificate validation.
 
-10.6.  Comparison Against Criteria
+10.7.  Comparison Against Criteria
 
    [RFC8744] lists several requirements for SNI encryption.  In this
    section, we re-iterate these requirements and assess the ECH design
    against them.
 
-10.6.1.  Mitigate against replay attacks
+10.7.1.  Mitigate against replay attacks
 
    Since servers process either ClientHelloInner or ClientHelloOuter,
    and ClientHelloInner contains an HPKE-derived nonce, it is not
@@ -1258,7 +1275,22 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    This is because the attacker lacks access to the HPKE-derived nonce
    used to derive the handshake secrets.
 
-10.6.2.  Avoid widely-deployed shared secrets
+
+
+
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 23]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
+10.7.2.  Avoid widely-deployed shared secrets
 
    This design depends upon DNS as a vehicle for semi-static public key
    distribution.  Server operators may partition their private keys
@@ -1269,7 +1301,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    by publishing different DNS records containing ECHConfig values with
    different keys using a short TTL.
 
-10.6.3.  Prevent SNI-based DoS attacks
+10.7.3.  Prevent SNI-based DoS attacks
 
    This design requires servers to decrypt ClientHello messages with
    ClientEncryptedCH extensions carrying valid digests.  Thus, it is
@@ -1277,20 +1309,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    server.  This attack is bound by the number of valid TCP connections
    an attacker can open.
 
-
-
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 23]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
-10.6.4.  Do not stick out
+10.7.4.  Do not stick out
 
    The only explicit signal indicating possible use of ECH is the
    ClientHello "encrypted_client_hello" extension.  Server handshake
@@ -1304,19 +1323,30 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    Web browsers start using ECH, the presence of this value will not
    signal unusual behavior to passive eavesdroppers.
 
-10.6.5.  Forward secrecy
+10.7.5.  Forward secrecy
 
    This design is not forward secret because the server's ECH key is
    static.  However, the window of exposure is bound by the key
    lifetime.  It is RECOMMENDED that servers rotate keys frequently.
 
-10.6.6.  Proper security context
+10.7.6.  Proper security context
 
    This design permits servers operating in Split Mode to forward
    connections directly to backend origin servers, thereby avoiding
    unnecessary MiTM attacks.
 
-10.6.7.  Split server spoofing
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 24]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
+10.7.7.  Split server spoofing
 
    Assuming ECH records retrieved from DNS are authenticated, e.g., via
    DNSSEC or fetched from a trusted Recursive Resolver, spoofing a
@@ -1328,32 +1358,21 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    the server because the client validates the server certificate
    against the public name before retrying.
 
-10.6.8.  Supporting multiple protocols
+10.7.8.  Supporting multiple protocols
 
    This design has no impact on application layer protocol negotiation.
    It may affect connection routing, server certificate selection, and
    client certificate verification.  Thus, it is compatible with
    multiple protocols.
 
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 24]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
-10.7.  Padding Policy
+10.8.  Padding Policy
 
    Variations in the length of the ClientHelloInner ciphertext could
    leak information about the corresponding plaintext.  Section 7.2
    describes a RECOMMENDED padding mechanism for clients aimed at
    reducing potential information leakage.
 
-10.8.  Active Attack Mitigations
+10.9.  Active Attack Mitigations
 
    This section describes the rationale for ECH properties and mechanics
    as defenses against active attacks.  In all the attacks below, the
@@ -1361,7 +1380,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    of the attacker is to learn private information about the inner
    ClientHello, such as the true SNI value.
 
-10.8.1.  Client Reaction Attack Mitigation
+10.9.1.  Client Reaction Attack Mitigation
 
    This attack uses the client's reaction to an incorrect certificate as
    an oracle.  The attacker intercepts a legitimate ClientHello and
@@ -1375,6 +1394,14 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    is "example.com," and the attacker replied with a Certificate for
    "test.com".  If the client produces a verification failure alert
    because of the mismatch faster than it would due to the Certificate
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 25]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
    signature validation, information about the name leaks.  Note that
    the attacker can also withhold the CertificateVerify message.  In
    that scenario, a client which first verifies the Certificate would
@@ -1395,13 +1422,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
       Alert
                     ------>
 
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 25]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
                       Figure 3: Client reaction attack
 
    The "ech_nonce" extension in the inner ClientHello prevents this
@@ -1410,7 +1430,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    needed for encrypting the Certificate message.  Thus, the client will
    fail to decrypt the Certificate and abort the connection.
 
-10.8.2.  HelloRetryRequest Hijack Mitigation
+10.9.2.  HelloRetryRequest Hijack Mitigation
 
    This attack aims to exploit server HRR state management to recover
    information about a legitimate ClientHello using its own attacker-
@@ -1425,6 +1445,18 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    first ClientHello and the key share from the second (attacker-
    controlled) ClientHello, the Certificate produced would leak the
    client's chosen SNI to the attacker.
+
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 26]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
     Client                         Attacker                   Server
       ClientHello
@@ -1449,15 +1481,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
                  Figure 4: HelloRetryRequest hijack attack
 
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 26]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
    This attack is mitigated by binding the first and second ClientHello
    messages together.  In particular, since the attacker does not
    possess the ech_hrr_key, it cannot generate a valid encryption of the
@@ -1473,7 +1496,7 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    for equality and changes behavior based on the result can be used as
    an oracle to learn the client's SNI.
 
-10.8.3.  Resumption PSK Oracle Mitigation
+10.9.3.  Resumption PSK Oracle Mitigation
 
    This attack uses resumption PSKs as an oracle for dictionary attacks
    against a given ClientHello's true SNI.  To begin, the attacker first
@@ -1483,6 +1506,14 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    own ticket and forwards the resulting ClientHello.  Assume the server
    then validates the PSK binder on the outer ClientHello and chooses
    connection parameters based on the inner ClientHello.  A server which
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 27]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
    then validates information in the outer ClientHello ticket against
    information in the inner ClientHello, such as the SNI, introduces an
    oracle that can be used to test the encrypted SNI value of specific
@@ -1507,13 +1538,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
                Figure 5: Message flow for resumption and PSK
 
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 27]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
    ECH mitigates against this attack by requiring servers not mix-and-
    match information from the inner and outer ClientHello.  For example,
    if the server accepts the inner ClientHello, it does not validate
@@ -1536,6 +1560,15 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
 
    3.  outer_extension(0xff04), with the "TLS 1.3" column values being
        set to "CH", and "Recommended" column being set to "Yes".
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 28]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
 11.2.  Update of the TLS Alert Registry
 
@@ -1563,13 +1596,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
               dnsop-svcb-https-01, 13 July 2020, <http://www.ietf.org/
               internet-drafts/draft-ietf-dnsop-svcb-https-01.txt>.
 
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 28]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
    [I-D.ietf-tls-exported-authenticator]
               Sullivan, N., "Exported Authenticators in TLS", Work in
               Progress, Internet-Draft, draft-ietf-tls-exported-
@@ -1593,15 +1619,17 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
               Padding Extension", RFC 7685, DOI 10.17487/RFC7685,
               October 2015, <https://www.rfc-editor.org/info/rfc7685>.
 
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 29]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
    [RFC7918]  Langley, A., Modadugu, N., and B. Moeller, "Transport
               Layer Security (TLS) False Start", RFC 7918,
               DOI 10.17487/RFC7918, August 2016,
               <https://www.rfc-editor.org/info/rfc7918>.
-
-   [RFC7924]  Santesson, S. and H. Tschofenig, "Transport Layer Security
-              (TLS) Cached Information Extension", RFC 7924,
-              DOI 10.17487/RFC7924, July 2016,
-              <https://www.rfc-editor.org/info/rfc7924>.
 
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
@@ -1619,13 +1647,6 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
               18 July 2017, <http://www.ietf.org/internet-drafts/draft-
               kazuho-protected-sni-00.txt>.
 
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 29]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
-
    [RFC7301]  Friedl, S., Popov, A., Langley, A., and E. Stephan,
               "Transport Layer Security (TLS) Application-Layer Protocol
               Negotiation Extension", RFC 7301, DOI 10.17487/RFC7301,
@@ -1636,6 +1657,11 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
               Layer Security (TLS)", RFC 7858, DOI 10.17487/RFC7858, May
               2016, <https://www.rfc-editor.org/info/rfc7858>.
 
+   [RFC7924]  Santesson, S. and H. Tschofenig, "Transport Layer Security
+              (TLS) Cached Information Extension", RFC 7924,
+              DOI 10.17487/RFC7924, July 2016,
+              <https://www.rfc-editor.org/info/rfc7924>.
+
    [RFC8094]  Reddy, T., Wing, D., and P. Patil, "DNS over Datagram
               Transport Layer Security (DTLS)", RFC 8094,
               DOI 10.17487/RFC8094, February 2017,
@@ -1644,6 +1670,17 @@ Internet-Draft         TLS Encrypted Client Hello            August 2020
    [RFC8484]  Hoffman, P. and P. McManus, "DNS Queries over HTTPS
               (DoH)", RFC 8484, DOI 10.17487/RFC8484, October 2018,
               <https://www.rfc-editor.org/info/rfc8484>.
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 30]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
 
    [RFC8701]  Benjamin, D., "Applying Generate Random Extensions And
               Sustain Extensibility (GREASE) to TLS Extensibility",
@@ -1663,24 +1700,6 @@ Appendix A.  Alternative SNI Protection Designs
    this document.
 
 A.1.  TLS-layer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 30]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
 
 A.1.1.  TLS in Early Data
 
@@ -1704,6 +1723,21 @@ A.1.1.  TLS in Early Data
    distinct Client Hello extension and neither abuses early data nor
    requires a bootstrapping connection.
 
+
+
+
+
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 31]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
 A.1.2.  Combined Tickets
 
    In this variant, client-facing and backend servers coordinate to
@@ -1717,26 +1751,6 @@ A.1.2.  Combined Tickets
    contrast, encrypted SNI requires no such coordination.
 
 A.2.  Application-layer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 31]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
 
 A.2.1.  HTTP/2 CERTIFICATE Frames
 
@@ -1769,6 +1783,17 @@ Appendix B.  Total Client Hello Encryption
 
    It also has the following disadvantages:
 
+
+
+
+
+
+
+Rescorla, et al.        Expires 19 February 2021               [Page 32]
+
+Internet-Draft         TLS Encrypted Client Hello            August 2020
+
+
    *  The client-facing server can still see the other extensions.  By
       contrast we could introduce another EncryptedExtensions block that
       was encrypted to the backend server and not the client-facing
@@ -1781,18 +1806,6 @@ Appendix B.  Total Client Hello Encryption
    *  A conforming middlebox will strip every extension, which might
       result in a ClientHello which is just unacceptable to the server
       (more analysis needed).
-
-
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 32]
-
-Internet-Draft         TLS Encrypted Client Hello            August 2020
-
 
 Appendix C.  Acknowledgements
 
@@ -1832,17 +1845,4 @@ Authors' Addresses
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Rescorla, et al.        Expires 18 February 2021               [Page 33]
+Rescorla, et al.        Expires 19 February 2021               [Page 33]
