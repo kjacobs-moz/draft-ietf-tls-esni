@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2020-08-17T20:20:21.007744+00:00",
+  "timestamp": "2020-08-19T14:03:06.252541+00:00",
   "repo": "tlswg/draft-ietf-tls-esni",
   "labels": [
     {
@@ -5116,7 +5116,7 @@
       "labels": [],
       "body": "From Section 6.1:\r\n\r\n```\r\n   When sending ClientHello, the client first computes ClientHelloInner,\r\n   including any PSK binders, and then MAY substitute extensions which\r\n   it knows will be duplicated in ClientHelloOuter.  To do so, the\r\n   client computes a hash H of the entire ClientHelloInner message with\r\n   the same hash as for the KDF used to encrypt ClienHelloInner.  Then,\r\n   the client removes and and replaces extensions from ClientHelloInner\r\n   with a single \"outer_extensions\" extension.  The list of\r\n   outer_extensions include those which were removed from\r\n   ClientHelloInner, in the order in which they were removed.  The hash\r\n   contains the full ClientHelloInner hash H computed above.\r\n```\r\n\r\nThis assumes that the KDF specifies some underlying hash function. From the HPKE spec, it seems like all that's required of the KDF is that it's an \"extract-then-expand\" KDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-4\r\n\r\nIn fact, the currently assigned code points are all for HKDF:\r\nhttps://datatracker.ietf.org/doc/html/draft-irtf-cfrg-hpke-05#section-7.2\r\n\r\nBut there's no requirement that the KDF always have some underlying hash function. As an alternative to HKDF, one can imagine a dedicated primitive that satisfies the extract-then-expand API but is not constructed from a hash function.",
       "createdAt": "2020-08-12T22:20:25Z",
-      "updatedAt": "2020-08-17T20:09:41Z",
+      "updatedAt": "2020-08-17T23:44:39Z",
       "closedAt": null,
       "comments": [
         {
@@ -5153,6 +5153,27 @@
           "body": "#271 addresses this issue.",
           "createdAt": "2020-08-17T20:09:40Z",
           "updatedAt": "2020-08-17T20:09:40Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "As I mentioned on the list, we can use the KDF in place of a hash.",
+          "createdAt": "2020-08-17T23:06:09Z",
+          "updatedAt": "2020-08-17T23:06:09Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I tend to agree. I'll create a new PR.",
+          "createdAt": "2020-08-17T23:09:45Z",
+          "updatedAt": "2020-08-17T23:09:45Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Have a look at #276, @martinthomson!",
+          "createdAt": "2020-08-17T23:44:39Z",
+          "updatedAt": "2020-08-17T23:44:39Z"
         }
       ]
     },
@@ -5354,15 +5375,15 @@
       "id": "MDU6SXNzdWU2Nzg2NTQ0NjM=",
       "title": "Security considerations: SNI leakage vectors",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/266",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Section 7.1 provides a bit of guidance on how ECH might interact with other extensions:\r\n\r\n> The client MUST place the value of ECHConfig.public_name in the ClientHelloOuter\r\n\"server_name\" extension. The ClientHelloOuter MUST NOT contain a \"cached_info\"\r\nextension {{!RFC7924}} with a CachedObject entry whose CachedInformationType is\r\n\"cert\", since this indication would divulge the true server name. The remaining\r\ncontents of the ClientHelloOuter MAY be identical to those in ClientHelloInner\r\nbut MAY also differ.\r\n\r\nI think it's worth expanding on this in \"Security Considerations\". There may be other ways that private CH extensions get leaked, now or in the future.",
       "createdAt": "2020-08-13T18:38:13Z",
-      "updatedAt": "2020-08-17T19:55:40Z",
-      "closedAt": null,
+      "updatedAt": "2020-08-18T03:55:45Z",
+      "closedAt": "2020-08-18T03:55:45Z",
       "comments": [
         {
           "author": "davidben",
@@ -5402,6 +5423,253 @@
       "updatedAt": "2020-08-13T21:51:42Z",
       "closedAt": null,
       "comments": []
+    },
+    {
+      "number": 274,
+      "id": "MDU6SXNzdWU2ODA1MDY2Njk=",
+      "title": "Usage indication: alternatives to trial decryption",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/274",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "In the current spec, the server provides no indication of whether the inner or outer ClientHello (CH) was used. This means the client must do trial decryption to make this determination, which creates complexity and potentially raises security concerns. As such, it would be useful to explore possible alternatives. In order to drive the discussion, I'll provide a few simple alternatives below, which we can refine as folks provide feedback. (The current spec, draft-07, is listed as option (0) for comparison.)\r\n\r\nBesides implementation complexity, one of our design considerations is ensuring that middleboxes don't ossify on ECH. As such, indication of ECH usage should \"stick out\" (see [draft-ietf-tls-sni-encryption, Sec 3.4](https://tools.ietf.org/html/draft-ietf-tls-sni-encryption-09#section-3.4)) as little as possible.\r\n\r\nFor our purposes, \"do not stick out\" means a middlebox who observes connections between the client and the client-facing server can't distinguish between real ECH and \"dummy\" ECH (i.e., a \"GREASEd\" extension, as described [Section 7.4](https://tools.ietf.org/html/draft-ietf-tls-esni-07#section-7.4)). We assume the middlebox doesn't know the ECH configuration or the public-facing name. (Note that this rules out adversaries such as the GFW, which can actively probe to discover this information.)\r\n\r\n## Option (0): Do not indicate usage\r\n**Protocol flow:**\r\n* **On input of the client's outer CH.** If the server accepts `ech` (i.e., `encrypted_client_hello`), it uses the inner CH; and if the server rejects or does not support ECH, then it uses the outer CH. It proceeds with the handshake as normal, except that in case of rejection, it sends an `ech` extension in its EE with the updated `ech` configuration.\r\n* **On input of the server's SH, EE, \u2026, Finished.** The client determines whether the inner CH or outer CH was used by computing the decryption key for each scenario and attempting to decrypt EE. It then proceeds with the handshake as usual, updating its `ech` configuration if applicable.\r\n\r\n**Pros**\r\n* Sticks out the least.\r\n* Is the least complex for servers to implement (same for Option (2)).\r\n\r\n**Cons**\r\n* Is the most complex for clients to implement.\r\n\r\n**Spec changes:** None.\r\n\r\n## Option (1): Publicly indicate acceptance\r\n**Protocol flow:**\r\n* **On input of the client's outer CH.** If the server accepts `ech`, it uses the inner CH; and if the server rejects or does not support `ech`, then it uses the outer CH. If the server accepts, then it adds an empty `ech` extension to its SH; if the server rejects, then it adds an `ech` extension to its EE with the updated `ech` configuration; and If the server doesn't support `ech`, then it proceeds as normal.\r\n* **On input of the server's SH, EE, \u2026, Finished.** If the SH has the `ech` extension, then the client proceeds as normal, assuming the inner CH was used; otherwise, the client proceeds as if the outer CH was used, updating its `ech` configuration if applicable.\r\n\r\n**Pros**\r\n* Is the least complex for clients to implement.\r\n\r\n**Cons**\r\n* Breaks Split Mode: the backend server must indicate acceptance in its SH but does not know whether the client-facing server accepted or not. (We could ameliorate this problem by adding an indication of acceptance to the inner CH.)\r\n* Sticks out the most. (See Option (3).)\r\n\r\n**Spec changes:** Semantics of the `ech`  extension changes; changes are needed to accommodate \"Split Mode\".\r\n\r\n## Option (2): Publicly indicate rejection\r\n\r\n**Protocol flow**:\r\n*  **On input of the client's outer CH.** If the server accepts `ech`, it uses the inner CH; and if the server rejects or does not support `ech`, then it uses the outer CH. If the server accepts or does not support `ech`, then it proceeds as usual; and if the server rejects, then it adds an `ech` extension to its SH with the updated `ech` configuration.\r\n*  **On input of the server's SH, EE, \u2026, Finished.** If the SH has the `ech` extension, then the client proceeds as if the outer CH was used and updates its `ech` configuration; otherwise, the client proceeds as if the inner CH was used. Decryption failure indicates either that the server does not support `ech` (i.e., outer CH was used) or the connection is under attack.\r\n\r\n**Pros**\r\n* Is the least complex for the server to implement (same as Option (0)).\r\n\r\n**Cons**\r\n* Sticks out, but only on rejection.\r\n* Complicates deployment: if the client offers `ech` to a server that has turned off support for the extension, then the connection will fail hard, as the client assumes lack of signal means that `ech` was accepted. (We could ameliorate this problem, at the cost of added complexity on the client side implementation.)\r\n\r\n**Spec changes:** Semantics of the `ech` extension changes; `ech` configuration update is sent in the clear. (We could avoid this by sending the new configuration in a new extension in the EE.)\r\n\r\n## Option (3): Privately indicate acceptance\r\nIt may be worth considering an alternative to Option (1) that doesn't stick out as much. Namely, it's possible to make `ech` acceptance in the SH indistinguishable from `ech` rejection.",
+      "createdAt": "2020-08-17T20:30:05Z",
+      "updatedAt": "2020-08-19T13:39:29Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Thanks for writing this up! We've also been pondering this issue in the context of QUIC. In particular, the status quo (option (0)) requires the handshake and record layer coordinate to implement the trial decryption. This would need to happen separately in TLS, DTLS, and QUIC.\r\n\r\nThis is especially a nuisance for QUIC as it will typically cross the TLS library\u2019s public API. TLS must configure two different keys for QUIC, then QUIC must do some trial decryption, and it must report back to TLS which keys were used. Public APIs and changes in them require coordination across groups, so ideally such interfaces stay as simple as possible. As in #264, I think an option that stays entirely in the handshake would apply to QUIC better.",
+          "createdAt": "2020-08-17T21:05:29Z",
+          "updatedAt": "2020-08-17T21:05:29Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "That (option (1) or something like it) would be my preference as well.",
+          "createdAt": "2020-08-17T21:25:55Z",
+          "updatedAt": "2020-08-17T21:25:55Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I would prefer Option 3, or something like it, if trial decryption is not acceptable.  Martin Thomson's proposal from March (placing a signal in ServerHello.random) seems like the logical approach to me.  There were [some concerns](https://mailarchive.ietf.org/arch/msg/tls/tvJx0setNnskI6eCR2Q20kcdy_M/) about an active attack that can distinguish acceptance from rejection, but that's still much better than a cleartext signal.",
+          "createdAt": "2020-08-17T21:31:45Z",
+          "updatedAt": "2020-08-17T21:31:45Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "To clarify, I think any of (1-3) would avoid the QUIC issues. The deployment concerns of (2) worry me, and the extent to which (1) sticks out makes me a little uncomfortable. I'm interested in exploring option (3).",
+          "createdAt": "2020-08-17T21:32:16Z",
+          "updatedAt": "2020-08-17T21:32:16Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Here's a suggestion for Option (3), worked out by me and some folks at Cloudflare. (Others might have had a similar idea, I don't mean to take credit!) The indication is a pseudorandom value output by the HPKE state. (If `ech` is not accepted, then a random value is used instead.)\r\n\r\n## Suggestion for Option (3)\r\nLet `context` denote the HPKE state shared by the client and server when `ech` is accepted. Its output can be treated as pseudorandom, e.g., `context.Export(\"tls13-ech-hrr-key', 16)` in Section 7.1 is treated as being indistinguishable from random.\r\n\r\n**Protocol flow:**\r\n* **On input of the client's outer CH.** If the server accepts `ech`, it uses the inner CH; and if the server rejects or does not support `ech`, then it uses the outer CH. If the server accepts, then it adds an `ech` extension to its SH with `context.Export(\"tls13-ech-accept\", 16)` as the value; if the server rejects, then it adds an `ech` extension to its SH with a random, 16-byte string and an \"ech_retry\" extension to its EE with the updated `ech` configuration; if the server does not support `ech`, then it proceeds as normal, but MAY mimic `ech` rejection.\r\n* **On input of the server's SH, EE, \u2026, Finished.** If the SH has the `ech` extension with payload `context.Export(\"tls13-ech-accept\", 16)`, then it proceeds as if the inner CH was used; otherwise it proceeds as if the outer CH was used, updating its `ech` configuration if applicable.\r\n\r\n**Pros**\r\n* Similar to Option (1)\r\n\r\n**Cons**\r\n* Similar to Option (1), but doesn't stick out as much. (It sticks out as much as the CH when dummy `ech` is used as described in Section 7.4.)\r\n\r\n**Spec changes:** Semantics of `ech` extension changes; adds `ech_retry` (i.e., `encrypted_client_hello_retry`) extension.",
+          "createdAt": "2020-08-17T21:34:53Z",
+          "updatedAt": "2020-08-17T21:41:26Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "(FWIW, I think the ServerHello.Random trick is due to @davidben or @dvorak42)",
+          "createdAt": "2020-08-17T21:38:02Z",
+          "updatedAt": "2020-08-17T21:38:02Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Weighing in: my vote goes to something like (3) as a means of not sticking out.",
+          "createdAt": "2020-08-17T21:41:02Z",
+          "updatedAt": "2020-08-17T21:41:02Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Before I even finished reading the opening post, I was thinking (3), so that seems like an obvious win.  What this does is signals *support* for ECH at a server, but doesn't indicate anything more.  It's an expensive way to signal a single bit, but that's not terrible.\r\n\r\nNote that this can be used to indicate support in-principle without any config, because servers (or stacks) that want to join the crowd can always produce this random string.  That would increase the number of servers that appear to support ECH, at very little cost.",
+          "createdAt": "2020-08-17T21:54:38Z",
+          "updatedAt": "2020-08-17T21:54:38Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I'm pleasantly surprised by how much consensus there is for Option (3). (BTW, kudos to the HPKE authors for designing a really nice API!) Does anyone have comments on the suggestion for Option (3) above?",
+          "createdAt": "2020-08-17T21:59:15Z",
+          "updatedAt": "2020-08-17T21:59:15Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Signalling that the server supports ECH in cleartext seems like a significant loss to me, and I think we can avoid it.  For example, if the first ~8 bytes of ServerHello.random were replaced by a MAC of the rest of the ServerHello, keyed from the HPKE context, that would be a tamperproof signal that the inner ClientHello was used.",
+          "createdAt": "2020-08-17T22:14:37Z",
+          "updatedAt": "2020-08-17T22:14:37Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "> Signalling that the server supports ECH in cleartext seems like a significant loss to me, and I think we can avoid it. For example, if the first ~8 bytes of ServerHello.random were replaced by a MAC of the rest of the ServerHello, keyed from the HPKE context, that would be a tamperproof signal that the inner ClientHello was used.\r\n\r\nThis would require security analysis to be sure it's actually safe. \r\n\r\nBut beyond that, what type of adversary are you considering?",
+          "createdAt": "2020-08-17T23:00:13Z",
+          "updatedAt": "2020-08-17T23:00:13Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Of course, if every stack produced the 16 byte extension in ServerHello, how is that materially different than 8 bytes embedded in ServerHello.random?",
+          "createdAt": "2020-08-17T23:29:31Z",
+          "updatedAt": "2020-08-17T23:29:31Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Overloading the SH.random this way is likely to violate assumptions made in existing security analyses for TLS 1.3. @bemasc's suggestion might turn out to be OK, but it would be safer to stick this in our own extension. That point notwithstanding, I'm worried about the broader precedent this could set, since overloading the semantics of CH.random and SH.random got us into trouble in earlier versions of TLS.",
+          "createdAt": "2020-08-17T23:54:55Z",
+          "updatedAt": "2020-08-17T23:55:29Z"
+        },
+        {
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I don't know that this is necessarily the case, but unless we need to, avoiding more use of those bits is desirable.  We could run out, and with 32 bytes, that's saying something.",
+          "createdAt": "2020-08-17T23:58:47Z",
+          "updatedAt": "2020-08-17T23:58:47Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I think what's clear is that the SH.random trick requires analysis, whereas the SH extension variant does not. Right?",
+          "createdAt": "2020-08-18T00:00:07Z",
+          "updatedAt": "2020-08-18T00:00:14Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I think they both need analysis, but the SH.random trick is much more invasive and likely to break things. In addition, if more \"users\" of the SH.random come along, then we would need to vet the interaction of our extension with theirs. (As @martinthomson points out.)",
+          "createdAt": "2020-08-18T00:03:33Z",
+          "updatedAt": "2020-08-18T00:06:26Z"
+        },
+        {
+          "author": "kazuho",
+          "authorAssociation": "COLLABORATOR",
+          "body": "+1 to option 3, and I tend to think that use of a SH extension is not a big concern.\r\n\r\nIt's correct that the extension might indicate the use of ECH. But from the perspective of a middlebox, that would always be the case when the _client_ sends an ECH extension. Also, there would be other ways to determine if a large-scale server supports ECH (note: ECH is about hiding a tree in the wood, so it's about the cost of finding such woods). Therefore, in practice there's marginal benefit in making the server support signal indistinguishable.",
+          "createdAt": "2020-08-18T03:52:02Z",
+          "updatedAt": "2020-08-18T03:52:02Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "From @cjpatton \r\n> I think they both need analysis, but the SH.random trick is much more invasive and likely to break things. In addition, if more \"users\" of the SH.random come along, then we would need to vet the interaction of our extension with theirs. (As @martinthomson points out.)\r\n\r\nI agree that analysis is needed, but I think using 8 bytes of SH.random is not a weird hack. It's at least a well-understood hack, because it's nicely parallel to the downgrade sentinel, and they never coexist.\r\n\r\nFrom @kazuho\r\n> It's correct that the extension might indicate the use of ECH. But from the perspective of a middlebox, that would always be the case when the client sends an ECH extension.\r\n\r\nTLS 1.2 middleboxes frequently take action based on the certificate, so  ServerHello extensions seem likely to be used as well.  If there's a ServerHello extension, I expect that some firewall vendor will offer a checkbox labeled \"Block Encrypted ClientHello\" based on this extension, in the \"Security\" section, and some admins will turn it on without understanding what it does.  If the local network is normally used to access a small set of services, and none of them support ECH yet, then this will appear to work fine, perhaps for years.  Then, if one of those services tries to enable ECH, they'll get angry phone calls from customers who can no longer access the service.  For them, ECH will be ossified.\r\n\r\nFor QUIC, I agree that a visible extension is OK, since it's not too late to get it into 1.0.  For TLS, I worry that it is too late.",
+          "createdAt": "2020-08-18T14:14:00Z",
+          "updatedAt": "2020-08-18T14:14:00Z"
+        },
+        {
+          "author": "MikeBishop",
+          "authorAssociation": "NONE",
+          "body": "@bemasc, given that servers can respond with rejection even without actual ECH support, would your concern be alleviated if some servers started rejecting the GREASE ECH extensions in the near future?",
+          "createdAt": "2020-08-18T14:24:43Z",
+          "updatedAt": "2020-08-18T14:24:43Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Hi thread, since there's largely consensus here, I'm going to start working on a PR for Option (3). I'll post it here when it's ready. Thanks for your input!",
+          "createdAt": "2020-08-18T20:45:38Z",
+          "updatedAt": "2020-08-18T20:45:38Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@MikeBishop Sure, the sooner many servers become \"ECH-aware\", the better.  However, I expect that conservative institutional services will be very slow to update.  In the extreme case, if a network is only used to access one service, then the broader ecosystem has limited direct impact.\r\n\r\nI don't mean to claim that this ossification is inevitable, but I'd prefer to reduce the risk if we can find a reasonable alternative.",
+          "createdAt": "2020-08-18T20:58:39Z",
+          "updatedAt": "2020-08-18T20:58:39Z"
+        },
+        {
+          "author": "bemasc",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "@cjpatton Regarding your second-extension proposal above, it seems to me that there are two options here.  In the one you wrote (\"ech_retry\"), the second extension (empty from the client) is paired with the retry configs.  Syntactically, this makes the retry functionality optional: a client that doesn't support retry could omit the \"ech_retry\" extension.\r\n\r\nAn alternative would be to pair the retries with the \"ech\" extension (as in the current draft), and pair the context tag response with a new empty extension.  I would call it \"context_tag\".  Syntactically, this makes the context tag functionality optional: clients that support trial decryption could omit it.\r\n\r\nI think the \"context_tag\" arrangement is preferable.  It's not explicitly connected to ECH, which I think makes it more likely to be implemented and less likely to be blocked.  In principle, it could be used for any future situation where the cryptographic context is ambiguous.  It would also give clients the option to use trial decryption in TLS/TCP, and avoid it for QUIC.  (Support would be mandatory for ECH and QUIC servers, but optional for clients.)",
+          "createdAt": "2020-08-19T13:38:08Z",
+          "updatedAt": "2020-08-19T13:39:29Z"
+        }
+      ]
+    },
+    {
+      "number": 275,
+      "id": "MDU6SXNzdWU2ODA1NjUyMTY=",
+      "title": "s/Hkpe/Hpke/?",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/275",
+      "state": "CLOSED",
+      "author": "cbartle891",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Are these typos or is there some reason HkpeKemId, HkpeKdfId, and HkpeAeadId should be \"Hkpe\" instead of \"Hpke\"? I don't see \"Hkpe\" anywhere in the cited draft.\r\n\r\n```\r\nuint16 HkpeKemId;  // Defined in I-D.irtf-cfrg-hpke\r\nuint16 HkpeKdfId;  // Defined in I-D.irtf-cfrg-hpke\r\nuint16 HkpeAeadId; // Defined in I-D.irtf-cfrg-hpke\r\n```",
+      "createdAt": "2020-08-17T22:34:31Z",
+      "updatedAt": "2020-08-18T03:55:05Z",
+      "closedAt": "2020-08-18T03:55:05Z",
+      "comments": [
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Yep -- typo! Can you please send a PR to fix them?",
+          "createdAt": "2020-08-17T23:15:56Z",
+          "updatedAt": "2020-08-17T23:15:56Z"
+        }
+      ]
+    },
+    {
+      "number": 278,
+      "id": "MDU6SXNzdWU2ODEzMzg4MDA=",
+      "title": "Computation of `config_digest`: which KDF?",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/issues/278",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "The `config_digest` field is defined as;\r\n> A cryptographic hash of the ECHConfig structure from which the ECH key was obtained, i.e., from the first byte of \"version\" to the end of the structure. This hash is computed using the hash function associated with cipher_suite, i.e., the corresponding HPKE KDF algorithm hash.\r\n\r\nBut the `ECHConfig` structure in draft-07 specifies a list of KDF/AEAD pairs. So which KDF is used to compute `config_digest`? The client is supposed to ignore any KDF/AEAD it doesn't support, so it's not clear how a client and server who need to negotiate the cipher suite can compute `config_digest` correctly.",
+      "createdAt": "2020-08-18T20:59:39Z",
+      "updatedAt": "2020-08-19T12:43:06Z",
+      "closedAt": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "One way to solve this problem is to only allow one cipher suite per ECH configuration.",
+          "createdAt": "2020-08-18T21:00:07Z",
+          "updatedAt": "2020-08-18T21:00:07Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I think one cipher suite per ECH configuration is a step too far in flattening. While juggling lots of KEM algorithms is unlikely (we basically have one correct answer right now, and each KEM algorithm is another long-lived key to manage), cipher suites are easier to shuffle and there are multiple correct answers depending on hardware capabilities. Whether AES-GCM and ChaCha20-Poly1305 is preferred is complex.\r\n\r\nPerhaps we use KDF associated with the KEM instead?",
+          "createdAt": "2020-08-18T21:57:02Z",
+          "updatedAt": "2020-08-18T21:57:02Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Hmm, doesn't the cipher suite list indicate a set of KDFs that MAY be used with the KEM? In other words, if there's a KDF associated with the KEM, then why would we allow multiple KDFs?",
+          "createdAt": "2020-08-18T22:13:24Z",
+          "updatedAt": "2020-08-18T22:13:24Z"
+        },
+        {
+          "author": "davidben",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Ah hrm. I had thought the KEM had a KDF associated, but looks like that's not quite right. The KEM interface does not, but the DHKEM happens to internally use a KDF, which may or may not be the same as the HPKE-level one.",
+          "createdAt": "2020-08-18T23:04:49Z",
+          "updatedAt": "2020-08-18T23:04:49Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "Right -- KEMs might not have KDFs associated with them. I think we should just use the KDF that the client picks when encrypting the ClientHello:\r\n\r\n~~~\r\n    struct {\r\n       HpkeCipherSuite cipher_suite; // <--- the KDF specified here...\r\n       opaque config_digest<0..2^16-1>; // <--- ... is used to compute this value\r\n       opaque enc<1..2^16-1>;\r\n       opaque encrypted_ch<1..2^16-1>;\r\n    } ClientEncryptedCH;\r\n~~~\r\n\r\nIt's fine that the ECHConfig has a list of KDFs. The client picks only one and tells the server which one. And I think it's reasonable for the server to be able to compute the `config_digest` (or whatever we rename it to be) with the KDF of the client's choosing.",
+          "createdAt": "2020-08-19T12:43:05Z",
+          "updatedAt": "2020-08-19T12:43:05Z"
+        }
+      ]
     }
   ],
   "pulls": [
@@ -19467,7 +19735,7 @@
       "labels": [],
       "body": "A server operator always has the option to operate in a retry-only mode, which may be necessary if updating the published ECHConfig is difficult and long-lived keys are undesirable.  This change improves forward-secrecy in that configuration.",
       "createdAt": "2020-08-17T16:45:35Z",
-      "updatedAt": "2020-08-17T18:15:23Z",
+      "updatedAt": "2020-08-18T14:52:35Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
@@ -19492,6 +19760,13 @@
           "body": "I agree; it's too expensive for normal use, and not worth complicating clients to improve performance.\r\n\r\nI'm thinking of use cases where DNS is not the distribution channel, and updating the ECHConfig is difficult.  It would be nice to be able to see that the ECHConfig is not \"pinning\" a key, and to have a shorter ECHConfig for very constrained distribution channels (e.g. a QR code).\r\n\r\nA client like this might fetch and cache real ECHConfigs once it's connected, but I think we can leave that to the application layer.",
           "createdAt": "2020-08-17T18:15:23Z",
           "updatedAt": "2020-08-17T18:15:23Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I like this idea!",
+          "createdAt": "2020-08-18T14:52:35Z",
+          "updatedAt": "2020-08-18T14:52:35Z"
         }
       ],
       "reviews": []
@@ -19501,52 +19776,156 @@
       "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDExNjg4",
       "title": "Adjust and generalize cached_info guidance.",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/270",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "davidben",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "Now that we've switched to encrypting the entire ClientHello, there's\r\nnothing wrong with cached_info in ClientHelloOuter, provided it's based\r\non the public name rather than the inner name. And, more generally,\r\nname-specific extensions take some care.\r\n\r\nReplace the prohibition with more general guidance in Security\r\nConsiderations, with cached_info merely being an example.\r\n\r\nThis addresses issue #266.",
       "createdAt": "2020-08-17T18:55:06Z",
-      "updatedAt": "2020-08-17T18:55:06Z",
+      "updatedAt": "2020-08-17T20:41:24Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
       "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
       "headRepository": "davidben/draft-ietf-tls-esni",
       "headRefName": "cached-info",
-      "headRefOid": "c3cd016faafd7bf069009bbe48415dceec013cbb",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "headRefOid": "4e179fe14da4d16b7b985cdb0c5afa5c9c527d02",
+      "closedAt": "2020-08-17T20:41:24Z",
+      "mergedAt": "2020-08-17T20:41:24Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "4ab5190580e30318764b92a776bfb8522cbb3ecb"
+      },
       "comments": [],
-      "reviews": []
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4ODA4OTcw",
+          "commit": {
+            "abbreviatedOid": "c3cd016"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM with a couple suggestions -- thanks!",
+          "createdAt": "2020-08-17T20:26:46Z",
+          "updatedAt": "2020-08-17T20:29:38Z",
+          "comments": [
+            {
+              "originalPosition": 26,
+              "body": "```suggestion\r\ntrue server name. For example, the \"cached_info\" ClientHello extension\r\n```",
+              "createdAt": "2020-08-17T20:26:46Z",
+              "updatedAt": "2020-08-17T20:38:28Z"
+            },
+            {
+              "originalPosition": 30,
+              "body": "```suggestion\r\nClientHelloOuter. It MAY send such values in the ClientHelloInner.\r\n```",
+              "createdAt": "2020-08-17T20:28:43Z",
+              "updatedAt": "2020-08-17T20:38:28Z"
+            },
+            {
+              "originalPosition": 22,
+              "body": "```suggestion\r\nwhich would reveal a sensitive ClientHelloInner property, such as the true\r\nserver name. It MAY send values associated with the public name in the \r\nClientHelloOuter.\r\n```",
+              "createdAt": "2020-08-17T20:29:27Z",
+              "updatedAt": "2020-08-17T20:38:28Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4ODE3ODAw",
+          "commit": {
+            "abbreviatedOid": "4e179fe"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-17T20:41:17Z",
+          "updatedAt": "2020-08-17T20:41:17Z",
+          "comments": []
+        }
+      ]
     },
     {
       "number": 271,
       "id": "MDExOlB1bGxSZXF1ZXN0NDY5MDM2NDU0",
       "title": "Require the KDF to be HKDF-based",
       "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/271",
-      "state": "OPEN",
+      "state": "CLOSED",
       "author": "cjpatton",
       "authorAssociation": "CONTRIBUTOR",
       "assignees": [],
       "labels": [],
       "body": "The spec makes use of the \"hash function underlying the KDF\", but the\r\nHPKE spec does not require such a function to exist. This resolves the\r\nissue by requiring that HKDF is used for key derivation in ECH.\r\n\r\nThis resolves #261.",
       "createdAt": "2020-08-17T19:52:26Z",
-      "updatedAt": "2020-08-17T19:52:26Z",
+      "updatedAt": "2020-08-17T23:43:57Z",
       "baseRepository": "tlswg/draft-ietf-tls-esni",
       "baseRefName": "master",
-      "baseRefOid": "5f86ef0a0bdcfce58a606de4a216213ebbed1a4d",
+      "baseRefOid": "4ab5190580e30318764b92a776bfb8522cbb3ecb",
       "headRepository": "cjpatton/draft-ietf-tls-esni",
       "headRefName": "hkdf",
-      "headRefOid": "6d049d8732af9ba06bba1dee1634ff4fa261c66b",
-      "closedAt": null,
+      "headRefOid": "96f3cecd473933836155b17badee77b5e0b1165e",
+      "closedAt": "2020-08-17T23:43:57Z",
       "mergedAt": null,
       "mergedBy": null,
       "mergeCommit": null,
-      "comments": [],
-      "reviews": []
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "I rolled up your changes.",
+          "createdAt": "2020-08-17T21:19:24Z",
+          "updatedAt": "2020-08-17T21:19:24Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "In light of @martinthomson's point on the mailing list, we might want to reconsider this PR.",
+          "createdAt": "2020-08-17T22:58:52Z",
+          "updatedAt": "2020-08-17T22:59:04Z"
+        },
+        {
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "body": "I really don't feel strongly about this. We don't have any other KDFs at the moment, and swapping in a new one later is trivial. ",
+          "createdAt": "2020-08-17T23:06:54Z",
+          "updatedAt": "2020-08-17T23:06:54Z"
+        },
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Dropping this in favor of #276.",
+          "createdAt": "2020-08-17T23:43:57Z",
+          "updatedAt": "2020-08-17T23:43:57Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4ODMyNTI5",
+          "commit": {
+            "abbreviatedOid": "6d049d8"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM modulo two nits. If and when an alternate KDF comes out and we need and want to support it for ECH, we can write text allowing it. For now, it seems fine to constrain ourselves to HKDF, given how tightly coupled it is to TLS 1.3 as is. ",
+          "createdAt": "2020-08-17T21:05:55Z",
+          "updatedAt": "2020-08-17T21:07:44Z",
+          "comments": [
+            {
+              "originalPosition": 48,
+              "body": "```suggestion\r\n  with the HPKE KDF.\r\n```",
+              "createdAt": "2020-08-17T21:05:56Z",
+              "updatedAt": "2020-08-17T21:19:04Z"
+            },
+            {
+              "originalPosition": 18,
+              "body": "```suggestion\r\ni.e., the hash function underlying the HPKE HKDF variant.\r\n```",
+              "createdAt": "2020-08-17T21:06:33Z",
+              "updatedAt": "2020-08-17T21:19:04Z"
+            }
+          ]
+        }
+      ]
     },
     {
       "number": 272,
@@ -19612,6 +19991,759 @@
           "body": "",
           "createdAt": "2020-08-17T20:19:28Z",
           "updatedAt": "2020-08-17T20:19:28Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 276,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MTIxMTkz",
+      "title": "Resolve mismatch between ECH and HPKE API",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/276",
+      "state": "OPEN",
+      "author": "cjpatton",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Per @martinthomson's suggestion, this replaces computations involving the \"hash underlying the KDF\" with evaluation of the KDF itself. This respects the API defined in the HPKE draft.\r\n\r\nThis supersedes #271.",
+      "createdAt": "2020-08-17T23:43:36Z",
+      "updatedAt": "2020-08-19T00:59:38Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "65f77a332de82ae6c666ed02d893b410b1e9f041",
+      "headRepository": "cjpatton/draft-ietf-tls-esni",
+      "headRefName": "hkdf2",
+      "headRefOid": "7f9bea7154301f44f65a570b94b542efb9cafaa4",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [
+        {
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "body": "Hey @chris-wood and @martinthomson, I rolled up your changes! Please have another look before merging.",
+          "createdAt": "2020-08-18T15:09:04Z",
+          "updatedAt": "2020-08-18T15:09:04Z"
+        }
+      ],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTA0NTI0",
+          "commit": {
+            "abbreviatedOid": "f42a0db"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-17T23:54:27Z",
+          "updatedAt": "2020-08-17T23:57:36Z",
+          "comments": [
+            {
+              "originalPosition": 34,
+              "body": "```suggestion\r\nentire ClientHelloInner message as:\r\n```",
+              "createdAt": "2020-08-17T23:54:27Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 60,
+              "body": "```suggestion\r\n  Section 4 of {{!I-D.irtf-cfrg-hpke}}.)\r\n```\r\n\r\n(I had some difficultly locating it without a more specific pointer.)",
+              "createdAt": "2020-08-17T23:56:32Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 11,
+              "body": "Rather than repeat the definition here, what you probably want to do is make a new section under {{outer-extensions}} and cite that.  It's reasonable to do that as a follow-up though.",
+              "createdAt": "2020-08-17T23:57:08Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTA2MjM5",
+          "commit": {
+            "abbreviatedOid": "f42a0db"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:00:01Z",
+          "updatedAt": "2020-08-18T00:00:01Z",
+          "comments": [
+            {
+              "originalPosition": 60,
+              "body": "Should we avoid referring to sections numbers in drafts, in case they change?",
+              "createdAt": "2020-08-18T00:00:01Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTA0NjY1",
+          "commit": {
+            "abbreviatedOid": "f42a0db"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-17T23:54:59Z",
+          "updatedAt": "2020-08-18T00:00:59Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "```suggestion\r\n: Equal to `Extract(Expand(\"\", config), \"ech_config_digest\", Nh)`, where `config` is the \r\n`ECHConfig` structure, and `Extract`, `Expand`, and `Nh` are as defined by the KDF API in\r\n{{!I-D.irtf-cfrg-hpke}}.\r\n```",
+              "createdAt": "2020-08-17T23:54:59Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 37,
+              "body": "```suggestion\r\n  hash = Extract(Expand(\"\", inner), \"ech_inner_digest\", Nh)\r\n```",
+              "createdAt": "2020-08-17T23:55:32Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 46,
+              "body": "```suggestion\r\nwhere `inner` is the ClientHelloInner structure, and `Extract`, `Expand`, and `Nh` are as \r\ndefined by the KDF API in {{!I-D.irtf-cfrg-hpke}}. Then, the client removes and replaces\r\nextensions from ClientHelloInner with a single \"outer_extensions\" extension. The\r\nlist of `outer_extensions` include those which were removed from\r\nClientHelloInner, in the order in which they were removed. The hash contains the\r\nfull ClientHelloInner hash computed above.\r\n```",
+              "createdAt": "2020-08-17T23:55:52Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTA2NzMy",
+          "commit": {
+            "abbreviatedOid": "f42a0db"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:01:27Z",
+          "updatedAt": "2020-08-18T00:01:28Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Let's do it in follow up.\r\n\r\nMy view is that the hash should be dropped from outer_extensions: see #263.",
+              "createdAt": "2020-08-18T00:01:27Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTA5NTc3",
+          "commit": {
+            "abbreviatedOid": "f42a0db"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:10:17Z",
+          "updatedAt": "2020-08-18T00:10:18Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Is the empty string <=> all zero thing a deliberate choice or just an odd quirk of HKDF (via HMAC)?  I agree that in this case the difference isn't important and an empty string is fine, but do we need to be careful about this at all?",
+              "createdAt": "2020-08-18T00:10:17Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTEwNDgw",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:13:09Z",
+          "updatedAt": "2020-08-18T00:13:09Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "For HKDF it's the same (if salt's omitted, HKDF just fills in a zero-length string of Nh bytes), but for other KDFs it might not be. So we decided to just stick with empty strings, and I think we ought to do the same here.",
+              "createdAt": "2020-08-18T00:13:09Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTEwODk3",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:14:29Z",
+          "updatedAt": "2020-08-18T00:14:30Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "[You have to be careful with the salt length for HKDF](https://hal.inria.fr/hal-02100345). As I recall, a safe choice is the output length of the underlying hash function. (This is `Nh` in the HPKE draft.) This is also what's done in RFC 8446.",
+              "createdAt": "2020-08-18T00:14:30Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTExMzUz",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:15:57Z",
+          "updatedAt": "2020-08-18T00:15:58Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Quoting from the HKDF RFC:\r\n\r\n> salt: if not provided, it is set to a string of HashLen zeros.\r\n\r\nWhat I'm proposing is that we omit this, since we don't want HKDF quirks impacting future KDFs. (This is a deliberate design choice we made for HPKE.)",
+              "createdAt": "2020-08-18T00:15:57Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTExODcy",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:17:37Z",
+          "updatedAt": "2020-08-18T00:17:37Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Is \"\" the same as Nh-length byte stering? I read \"\" as the 0-length string.",
+              "createdAt": "2020-08-18T00:17:37Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTExOTgz",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:18:01Z",
+          "updatedAt": "2020-08-18T00:18:02Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "(See above thread.)",
+              "createdAt": "2020-08-18T00:18:02Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTEyMTg5",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:18:39Z",
+          "updatedAt": "2020-08-18T00:18:40Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "It's an empty string, i.e., equivalent to not providing the input. (We could add text clarifying that!)",
+              "createdAt": "2020-08-18T00:18:40Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTEyNjM0",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:20:18Z",
+          "updatedAt": "2020-08-18T00:20:18Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "What does it look like, syntactically, if the salt isn't provided? Were I reading this, I would think that the salt is the empty string.\r\n\r\nPossible variants:\r\n- `Extract(salt, ikm)` where `salt` is ...\r\n- `Extract(\"\", ikm)` (I read this as the empty string)\r\n- `Extract(0, ikm)` (not sure how to read this, lol)",
+              "createdAt": "2020-08-18T00:20:18Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTE3MjA2",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:36:08Z",
+          "updatedAt": "2020-08-18T00:36:08Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Chatted offline -- `Extract(\"\", ikm)` is the way to go!",
+              "createdAt": "2020-08-18T00:36:08Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTE4OTc2",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:42:12Z",
+          "updatedAt": "2020-08-18T00:42:12Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Will do with this in the morning!",
+              "createdAt": "2020-08-18T00:42:12Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTE5MTg1",
+          "commit": {
+            "abbreviatedOid": "dec449e"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T00:42:51Z",
+          "updatedAt": "2020-08-18T00:42:52Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "We'll go with \"\" == \"\\x00\" * Nh, here and below. I'll add a paranthetical to clarify this the first time we use this.",
+              "createdAt": "2020-08-18T00:42:51Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5NTUxNDYy",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T15:08:16Z",
+          "updatedAt": "2020-08-18T15:08:17Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Done.",
+              "createdAt": "2020-08-18T15:08:16Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5NTcwNzc5",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "CHANGES_REQUESTED",
+          "body": "",
+          "createdAt": "2020-08-18T15:27:57Z",
+          "updatedAt": "2020-08-18T15:29:43Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "The order is wrong here -- it should be Expand(Extract(...))",
+              "createdAt": "2020-08-18T15:27:58Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 11,
+              "body": "This should be `Extract`, not `Expand`.",
+              "createdAt": "2020-08-18T15:28:58Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 37,
+              "body": "Backwards here, too.",
+              "createdAt": "2020-08-18T15:29:05Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 69,
+              "body": "Since this is no longer a hash function output (and not a digest), perhaps we should rename this to `config_id`, or something. ",
+              "createdAt": "2020-08-18T15:29:40Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5NjgyMjQy",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T17:38:52Z",
+          "updatedAt": "2020-08-18T17:38:52Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "ahh, good catch",
+              "createdAt": "2020-08-18T17:38:52Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5NjgzMjQw",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T17:40:15Z",
+          "updatedAt": "2020-08-18T17:40:16Z",
+          "comments": [
+            {
+              "originalPosition": 8,
+              "body": "Fixed, here and below.",
+              "createdAt": "2020-08-18T17:40:15Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5NjgzODY3",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T17:41:07Z",
+          "updatedAt": "2020-08-18T17:41:08Z",
+          "comments": [
+            {
+              "originalPosition": 11,
+              "body": "Done.",
+              "createdAt": "2020-08-18T17:41:07Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5Njg1MTAw",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T17:42:48Z",
+          "updatedAt": "2020-08-18T17:42:49Z",
+          "comments": [
+            {
+              "originalPosition": 69,
+              "body": "I'd be ok with this change, though existing issues refer to `config_digest`. Why don't we put this on the stack of editorial TODOs?",
+              "createdAt": "2020-08-18T17:42:49Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5Njg1NDAy",
+          "commit": {
+            "abbreviatedOid": "65c7be5"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T17:43:12Z",
+          "updatedAt": "2020-08-18T17:43:13Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "Done",
+              "createdAt": "2020-08-18T17:43:13Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5ODk4MTQz",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T23:32:41Z",
+          "updatedAt": "2020-08-18T23:32:42Z",
+          "comments": [
+            {
+              "originalPosition": 69,
+              "body": "Yeah, that's fine.",
+              "createdAt": "2020-08-18T23:32:41Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5ODk4NTQy",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T23:33:48Z",
+          "updatedAt": "2020-08-18T23:33:48Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "Let's make a note to change this to something other than `hash`, too. (If we keep it!)",
+              "createdAt": "2020-08-18T23:33:48Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5ODk4OTEy",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "LGTM with the latest changes. Thanks!",
+          "createdAt": "2020-08-18T23:34:43Z",
+          "updatedAt": "2020-08-18T23:34:43Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5OTAxNzIz",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-18T23:43:02Z",
+          "updatedAt": "2020-08-18T23:44:08Z",
+          "comments": [
+            {
+              "originalPosition": 60,
+              "body": "It's easy to fix.  If HPKE was so unstable, I'd be less inclined to depend on it.",
+              "createdAt": "2020-08-18T23:43:02Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            },
+            {
+              "originalPosition": 37,
+              "body": "`config_id` ? or, for now: \r\n\r\n```suggestion\r\n  config_digest = Expand(Extract(\"\", inner), \"ech_inner_digest\", Nh)\r\n```",
+              "createdAt": "2020-08-18T23:43:30Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5OTA1MzU1",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-18T23:54:01Z",
+          "updatedAt": "2020-08-18T23:54:01Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "Well this is the hash of the inner CH, not of the config. Let's just change this name in a separate PR. ",
+              "createdAt": "2020-08-18T23:54:01Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5OTUyMDg2",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-19T00:58:04Z",
+          "updatedAt": "2020-08-19T00:58:05Z",
+          "comments": [
+            {
+              "originalPosition": 69,
+              "body": "Noted.",
+              "createdAt": "2020-08-19T00:58:05Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY5OTUzNjUx",
+          "commit": {
+            "abbreviatedOid": "a6b8bd4"
+          },
+          "author": "cjpatton",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "COMMENTED",
+          "body": "",
+          "createdAt": "2020-08-19T00:59:00Z",
+          "updatedAt": "2020-08-19T00:59:01Z",
+          "comments": [
+            {
+              "originalPosition": 37,
+              "body": "Agreed.",
+              "createdAt": "2020-08-19T00:59:00Z",
+              "updatedAt": "2020-08-19T00:59:38Z"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 277,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDY5MTQ2Mjg2",
+      "title": "Nit: fix typo: change 'Hkpe' to 'Hpke'.",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/277",
+      "state": "MERGED",
+      "author": "cbartle891",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "Fix for https://github.com/tlswg/draft-ietf-tls-esni/issues/275.",
+      "createdAt": "2020-08-18T01:24:33Z",
+      "updatedAt": "2020-08-18T03:54:41Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "4ab5190580e30318764b92a776bfb8522cbb3ecb",
+      "headRepository": "cbartle891/draft-ietf-tls-esni",
+      "headRefName": "master",
+      "headRefOid": "6b5d04e7b27127527f78ec7152572115915ac6b8",
+      "closedAt": "2020-08-18T03:54:41Z",
+      "mergedAt": "2020-08-18T03:54:40Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "65f77a332de82ae6c666ed02d893b410b1e9f041"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTMxOTUw",
+          "commit": {
+            "abbreviatedOid": "6b5d04e"
+          },
+          "author": "martinthomson",
+          "authorAssociation": "CONTRIBUTOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-18T01:27:57Z",
+          "updatedAt": "2020-08-18T01:27:57Z",
+          "comments": []
+        },
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDY4OTczNDI1",
+          "commit": {
+            "abbreviatedOid": "6b5d04e"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-18T03:54:35Z",
+          "updatedAt": "2020-08-18T03:54:35Z",
+          "comments": []
+        }
+      ]
+    },
+    {
+      "number": 279,
+      "id": "MDExOlB1bGxSZXF1ZXN0NDcwMTUwOTc3",
+      "title": "Fix typo CllientHelloInner",
+      "url": "https://github.com/tlswg/draft-ietf-tls-esni/pull/279",
+      "state": "MERGED",
+      "author": "thomwiggers",
+      "authorAssociation": "CONTRIBUTOR",
+      "assignees": [],
+      "labels": [],
+      "body": "This PR fixes a small typo.",
+      "createdAt": "2020-08-19T13:04:33Z",
+      "updatedAt": "2020-08-19T14:02:34Z",
+      "baseRepository": "tlswg/draft-ietf-tls-esni",
+      "baseRefName": "master",
+      "baseRefOid": "65f77a332de82ae6c666ed02d893b410b1e9f041",
+      "headRepository": "thomwiggers/draft-ietf-tls-esni",
+      "headRefName": "fix-typo",
+      "headRefOid": "32c83a66cdb1de8553add83f9e40ae00eba3b459",
+      "closedAt": "2020-08-19T14:02:34Z",
+      "mergedAt": "2020-08-19T14:02:34Z",
+      "mergedBy": "chris-wood",
+      "mergeCommit": {
+        "oid": "250bd072036d663a39966e8a5ff243d54a3bf49d"
+      },
+      "comments": [],
+      "reviews": [
+        {
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NDcwNDg5NjA1",
+          "commit": {
+            "abbreviatedOid": "32c83a6"
+          },
+          "author": "chris-wood",
+          "authorAssociation": "COLLABORATOR",
+          "state": "APPROVED",
+          "body": "",
+          "createdAt": "2020-08-19T14:02:30Z",
+          "updatedAt": "2020-08-19T14:02:30Z",
           "comments": []
         }
       ]
